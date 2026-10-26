@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PemasukanForm from "./components/PemasukanForm";
-import API from "./api";
-// Import logo disesuaikan dengan ekstensi .jpeg
+import API from "./api"; // Menggunakan instance API
 import logoImg from "./assets/logo.jpeg"; 
 
 function App() {
@@ -22,25 +21,33 @@ function App() {
   const [emailAnggota, setEmailAnggota] = useState("");
   const [passAnggota, setPassAnggota] = useState("");
 
+  // FUNGSI LOGIN DIPERBAIKI (Gunakan API bukan api)
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
 
     try {
-      const res = await API.post("/login", { email, password });
-      if (res.data.status === "success") {
-        setUser(res.data.user);
-        localStorage.setItem("user", JSON.stringify(res.data.user));
-        setEmail("");
-        setPassword("");
+      const response = await API.post('/login', { email, password });
+      
+      const { access_token, user: userData } = response.data;
+
+      // Simpan token dan user ke localStorage
+      if (access_token) {
+        localStorage.setItem("token", access_token);
       }
-    } catch (err) {
-      setLoginError(err.response?.data?.message || "Login gagal! Periksa email dan password.");
+      localStorage.setItem("user", JSON.stringify(userData));
+
+      // Update state React agar langsung masuk ke Dashboard
+      setUser(userData);
+    } catch (error) {
+      console.error("Detail Error:", error.response);
+      setLoginError(error.response?.data?.message || "Login gagal! Periksa email dan password.");
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     setUser(null);
     setEmail("");
     setPassword("");
@@ -224,7 +231,7 @@ function App() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
           <span style={{ fontSize: "13px", color: "#94a3b8" }}>
-            User: <b style={{ color: "#fff" }}>{user.name}</b> (<span style={{ color: "#60a5fa" }}>{user.role.toUpperCase()}</span>)
+            User: <b style={{ color: "#fff" }}>{user.name}</b> (<span style={{ color: "#60a5fa" }}>{user.role ? user.role.toUpperCase() : "MEMBER"}</span>)
           </span>
           <button onClick={handleLogout} style={{ background: "#dc2626", color: "#fff", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
             Logout

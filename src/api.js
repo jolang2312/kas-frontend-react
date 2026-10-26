@@ -1,7 +1,12 @@
 import axios from 'axios';
 
-const API = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api', // Harus diakhiri /api dan menggunakan port 8000
+const api = axios.create({
+    // Ganti URL di bawah ini dengan URL backend publik kamu yang sudah di-deploy
+    baseURL: 'https://kas-backend.vercel.app/api', 
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+    },
 });
 
-export default API;
+export default api;
