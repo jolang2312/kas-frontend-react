@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import KonfirmasiForm from "./components/KonfirmasiForm";
+import InputForm from "./components/InputForm";
 import { supabase } from "./supabaseClient";
 import logoImg from "./assets/logo.jpeg"; 
 
@@ -66,19 +66,26 @@ function App() {
     setAnggotaList([]);
   };
 
-  // FETCH TRANSAKSI DARI BACKEND LARAVEL (HANYA YANG SETTLEMENT/LUNAS)
+  // FETCH TRANSAKSI LANGSUNG DARI SUPABASE
   const fetchTransaksi = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/riwayat");
-      const data = await response.json();
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .order("id", { ascending: false });
+
+      if (error) throw error;
+
       const dataTransaksi = data || [];
       setTransaksi(dataTransaksi);
-
-      const summaryRes = await fetch("http://127.0.0.1:8000/api/summary");
-      const summaryData = await summaryRes.json();
-      setTotal(summaryData.total_kas || 0);
+      
+      const sum = dataTransaksi.reduce(
+        (acc, curr) => acc + parseInt(curr.amount || curr.jumlah || 0),
+        0
+      );
+      setTotal(sum);
     } catch (err) {
-      console.error("Gagal mengambil transaksi dari backend:", err);
+      console.error("Gagal mengambil transaksi:", err.message);
     }
   };
 
@@ -185,7 +192,7 @@ function App() {
             </div>
             <div class="item-row">
               <span class="label">Tanggal Transaksi</span>
-              <span class="value">${item.created_at ? new Date(item.created_at).toLocaleString("id-ID") : "-"}</span>
+              <span class="value">${item.transaction_date ? new Date(item.transaction_date).toLocaleString("id-ID") : "-"}</span>
             </div>
             <div class="item-row">
               <span class="label">Keterangan / Pembayar</span>
@@ -314,7 +321,7 @@ function App() {
           {user.role === "anggota" && (
             <div style={styles.panelCard}>
               <h3 style={styles.panelTitle}>💳 Input Pemasukan / Kas</h3>
-              <KonfirmasiForm onSuccess={fetchTransaksi} />
+              <InputForm onSuccess={fetchTransaksi} />
             </div>
           )}
 
@@ -344,7 +351,7 @@ function App() {
                     transaksi.map((item, idx) => (
                       <tr key={idx} style={styles.tableRow}>
                         <td style={styles.tdMuted}>
-                          {item.created_at ? new Date(item.created_at).toLocaleDateString("id-ID") : "-"}
+                          {item.transaction_date ? new Date(item.transaction_date).toLocaleDateString("id-ID") : "-"}
                         </td>
                         <td style={styles.tdWhite}>{item.payer_name || item.keterangan || '-'}</td>
                         <td style={styles.tdGreen}>

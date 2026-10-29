@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { supabase } from "../supabaseClient";
 import qrisImg from "../assets/qris.jpeg";
 
-function KonfirmasiForm({ onSuccess }) {
+function InputForm({ onSuccess }) {
   const [nominal, setNominal] = useState(25000);
   const [keterangan, setKeterangan] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,8 +30,11 @@ function KonfirmasiForm({ onSuccess }) {
 
     try {
       const valNominal = parseInt(nominal);
+      
+      // Format tanggal string standar yang aman untuk PostgreSQL (YYYY-MM-DD HH:mm:ss)
+      const now = new Date();
+      const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);
 
-      // Menyertakan transaction_date agar tidak melanggar not-null constraint
       const { error } = await supabase
         .from("transactions")
         .insert([
@@ -40,7 +43,7 @@ function KonfirmasiForm({ onSuccess }) {
             amount: valNominal,
             payment_method: "DANA QR",
             transaction_type: "income",
-            transaction_date: new Date().toISOString()
+            transaction_date: formattedDate
           }
         ]);
 
@@ -188,4 +191,4 @@ function KonfirmasiForm({ onSuccess }) {
   );
 }
 
-export default KonfirmasiForm;
+export default InputForm;
