@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import InputForm from "./components/InputForm";
+import Card3D from "./components/Card3D";
 import { supabase } from "./supabaseClient";
 import logoImg from "./assets/logo.jpeg"; 
 
@@ -65,7 +66,7 @@ function App() {
     setAnggotaList([]);
   };
 
-  // FETCH TRANSAKSI (Total kas hanya menjumlahkan transaksi dengan status 'settlement' / 'lunas')
+  // FETCH TRANSAKSI (Total kas hanya menjumlahkan transaksi berstatus 'settlement' / 'lunas')
   const fetchTransaksi = async () => {
     try {
       const { data, error } = await supabase
@@ -327,17 +328,21 @@ function App() {
       </header>
 
       <main style={styles.mainContent}>
+        {/* SUMMARY CARD DENGAN ANIMASI THREE.JS */}
         <div style={styles.summaryCard}>
           <div>
             <span style={styles.summaryLabel}>Total Kas Terkumpul (Terverifikasi)</span>
             <h1 style={styles.summaryAmount}>
               Rp {total.toLocaleString("id-ID")}
             </h1>
+            <div style={{ marginTop: "12px" }}>
+              <span style={{ color: "#10b981", fontWeight: "700", fontSize: "12px", background: "rgba(16, 185, 129, 0.1)", padding: "6px 12px", borderRadius: "20px" }}>
+                ● Modus Akses: {user.role === "admin" ? "Administrator Master" : "Anggota"}
+              </span>
+            </div>
           </div>
-          <div style={styles.statusBox}>
-            <span style={{ color: "#10b981", fontWeight: "700", fontSize: "13px" }}>
-              ● Modus Akses: {user.role === "admin" ? "Administrator Master" : "Anggota"}
-            </span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Card3D />
           </div>
         </div>
 
