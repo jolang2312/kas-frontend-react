@@ -66,7 +66,6 @@ function App() {
     setAnggotaList([]);
   };
 
-  // FETCH TRANSAKSI (Total kas hanya menjumlahkan transaksi berstatus 'settlement' / 'lunas')
   const fetchTransaksi = async () => {
     try {
       const { data, error } = await supabase
@@ -91,7 +90,6 @@ function App() {
     }
   };
 
-  // VERIFIKASI ADMIN: Menyetujui transaksi pending
   const handleVerifikasi = async (id) => {
     try {
       const { error } = await supabase
@@ -108,7 +106,6 @@ function App() {
     }
   };
 
-  // TOLAK & HAPUS TRANSAKSI: Menghapus transaksi yang tidak valid
   const handleTolak = async (id) => {
     if (window.confirm("Yakin ingin menolak transaksi ini? Transaksi yang ditolak akan langsung dihapus dari sistem.")) {
       try {
@@ -250,6 +247,7 @@ function App() {
     printWindow.document.close();
   };
 
+  // HALAMAN LOGIN DENGAN ANIMASI 3D THREE.JS
   if (!user) {
     return (
       <div style={styles.loginContainer}>
@@ -257,6 +255,11 @@ function App() {
           <div style={styles.logoWrapper}>
             <img src={logoImg} alt="Southern Base" style={styles.logoImg} />
             <div style={styles.badgeGlow}>SOUTHERN BASE PORTAL</div>
+          </div>
+
+          {/* OBJ 3D TERPASANG DI HALAMAN LOGIN */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
+            <Card3D />
           </div>
 
           {loginError && (
@@ -328,7 +331,6 @@ function App() {
       </header>
 
       <main style={styles.mainContent}>
-        {/* SUMMARY CARD DENGAN ANIMASI THREE.JS */}
         <div style={styles.summaryCard}>
           <div>
             <span style={styles.summaryLabel}>Total Kas Terkumpul (Terverifikasi)</span>
@@ -527,12 +529,12 @@ const styles = {
   },
   logoWrapper: {
     textAlign: "center",
-    marginBottom: "28px"
+    marginBottom: "16px"
   },
   logoImg: {
     maxWidth: "180px",
     borderRadius: "10px",
-    marginBottom: "12px",
+    marginBottom: "8px",
     boxShadow: "0 8px 20px rgba(0,0,0,0.4)"
   },
   badgeGlow: {
