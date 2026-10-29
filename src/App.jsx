@@ -20,7 +20,7 @@ function App() {
   const [anggotaList, setAnggotaList] = useState([]);
   const [selectedProof, setSelectedProof] = useState(null);
 
-  // Filter Tanggal & Nama khusus Admin (Kalender Sederhana)
+  // Filter Tanggal & Nama Anggota khusus Admin
   const [filterDate, setFilterDate] = useState("");
   const [filterMemberName, setFilterMemberName] = useState("");
 
@@ -52,7 +52,7 @@ function App() {
       if (error) throw error;
 
       if (!data || data.length === 0) {
-        throw new Error("Email atau password salah / tidak terdaftar!");
+        throw new Error("Email atau password tidak terdaftar / salah.");
       }
 
       const userData = data[0];
@@ -60,7 +60,7 @@ function App() {
       setUser(userData);
       setNewUsername(userData.name);
     } catch (err) {
-      setLoginError(err.message || "Gagal masuk ke portal.");
+      setLoginError(err.message || "Gagal masuk ke sistem.");
     } finally {
       setLoadingLogin(false);
     }
@@ -136,10 +136,10 @@ function App() {
       setUser(updatedUser);
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setNewPassword("");
-      setProfileMsg("✅ Profil & kata sandi berhasil diperbarui!");
+      setProfileMsg("✅ Kredensial berhasil diperbarui.");
       fetchTransaksi();
     } catch (err) {
-      setProfileMsg("❌ Gagal memperbarui profil: " + err.message);
+      setProfileMsg("❌ Perubahan gagal: " + err.message);
     }
   };
 
@@ -155,11 +155,11 @@ function App() {
 
       if (error) throw error;
 
-      alert("Kredensial anggota berhasil diperbarui!");
+      alert("Data anggota berhasil diperbarui.");
       setEditingUserId(null);
       fetchAnggota();
     } catch (err) {
-      alert("Gagal memperbarui anggota: " + err.message);
+      alert("Gagal memperbarui data anggota: " + err.message);
     }
   };
 
@@ -171,15 +171,14 @@ function App() {
         .eq("id", id);
 
       if (error) throw error;
-      alert("Transaksi berhasil disetujui! Saldo resmi tercatat di Total Kas.");
       fetchTransaksi();
     } catch (err) {
-      alert("Gagal memverifikasi: " + err.message);
+      alert("Gagal memverifikasi transaksi: " + err.message);
     }
   };
 
   const handleTolak = async (id) => {
-    if (window.confirm("Yakin ingin menolak dan menghapus transaksi ini?")) {
+    if (window.confirm("Batalkan dan hapus data transaksi ini?")) {
       try {
         const { error } = await supabase
           .from("transactions")
@@ -187,10 +186,9 @@ function App() {
           .eq("id", id);
 
         if (error) throw error;
-        alert("Transaksi berhasil ditolak dan dihapus.");
         fetchTransaksi();
       } catch (err) {
-        alert("Gagal menolak transaksi: " + err.message);
+        alert("Gagal membatalkan transaksi: " + err.message);
       }
     }
   };
@@ -209,7 +207,6 @@ function App() {
       return acc;
     }, {});
 
-  // Filtering Transaksi berdasarkan Tanggal dan Nama Anggota
   const filteredTransaksi = transaksi.filter((item) => {
     const matchesDate = filterDate ? item.transaction_date === filterDate : true;
     const matchesName = filterMemberName
@@ -223,18 +220,19 @@ function App() {
       <div style={styles.loginContainer}>
         <Background3D role="anggota" />
         <div style={{ ...styles.loginCard, position: "relative", zIndex: 1 }}>
-          <div style={{ textAlign: "center", marginBottom: "20px" }}>
-            <img src={logoImg} alt="Southern Base" style={{ width: "110px", borderRadius: "10px" }} />
-            <div style={{ fontSize: "11px", fontWeight: "800", color: "#3b82f6", marginTop: "8px" }}>
-              SOUTHERN BASE PORTAL
-            </div>
+          <div style={{ textAlign: "center", marginBottom: "24px" }}>
+            <img src={logoImg} alt="Southern Base" style={{ width: "96px", borderRadius: "8px" }} />
+            <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#f4f4f5", margin: "12px 0 2px 0" }}>
+              SOUTHERN BASE
+            </h2>
+            <p style={{ fontSize: "11px", color: "#71717a", margin: 0 }}>Portal Manajemen Kas Organisasi</p>
           </div>
 
           {loginError && <div style={styles.errorBox}>⚠️ {loginError}</div>}
 
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: "14px" }}>
-              <label style={styles.label}>Email Address</label>
+              <label style={styles.label}>Email</label>
               <input
                 type="email"
                 placeholder="nama@kas.com"
@@ -246,7 +244,7 @@ function App() {
             </div>
 
             <div style={{ marginBottom: "20px" }}>
-              <label style={styles.label}>Password System</label>
+              <label style={styles.label}>Kata Sandi</label>
               <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -267,7 +265,7 @@ function App() {
             </div>
 
             <button type="submit" style={styles.btnLogin} disabled={loadingLogin}>
-              {loadingLogin ? "Memverifikasi..." : "Masuk Portal →"}
+              {loadingLogin ? "Memproses..." : "Masuk"}
             </button>
           </form>
         </div>
@@ -285,49 +283,49 @@ function App() {
         <div onClick={() => setSelectedProof(null)} style={styles.modalOverlay}>
           <div onClick={(e) => e.stopPropagation()} style={styles.modalContent}>
             <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#f4f4f5" }}>
-              🖼️ Bukti Transfer Screenshot
+              Bukti Transfer
             </h4>
             <img src={selectedProof} alt="Bukti Transfer" style={styles.proofImg} />
             <button onClick={() => setSelectedProof(null)} style={styles.btnCloseModal}>
-              Tutup Preview
+              Tutup
             </button>
           </div>
         </div>
       )}
 
       <div style={{ position: "relative", zIndex: 1 }}>
-        <header style={{ ...styles.navbar, background: isAdmin ? "#0f172a" : "#064e3b" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <img src={logoImg} alt="Logo" style={{ height: "26px", borderRadius: "6px" }} />
-            <span style={{ fontWeight: "800", fontSize: "13px", letterSpacing: "1px" }}>
-              SOUTHERN BASE {isAdmin ? "ADMIN CONTROL" : "PORTAL ORGANISASI"}
+        <header style={{ ...styles.navbar, borderBottom: isAdmin ? "1px solid #1e3a8a" : "1px solid #14532d" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <img src={logoImg} alt="Logo" style={{ height: "24px", borderRadius: "4px" }} />
+            <span style={{ fontWeight: "700", fontSize: "13px", color: "#f4f4f5", letterSpacing: "0.5px" }}>
+              SOUTHERN BASE {isAdmin ? "• MASTER CONTROL" : "• MEMBER PORTAL"}
             </span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div style={styles.userBadge}>
-              <span style={{ fontSize: "12px" }}>👤 <b>{user.name}</b></span>
+              <span style={{ fontSize: "12px", color: "#e4e4e7" }}>{user.name}</span>
               <span style={isAdmin ? styles.badgeAdmin : styles.badgeMember}>
                 {user.role ? user.role.toUpperCase() : "MEMBER"}
               </span>
             </div>
-            <button onClick={handleLogout} style={styles.btnLogout}>Logout</button>
+            <button onClick={handleLogout} style={styles.btnLogout}>Keluar</button>
           </div>
         </header>
 
-        <main style={{ maxWidth: "1100px", margin: "20px auto", padding: "0 16px" }}>
+        <main style={{ maxWidth: "1100px", margin: "24px auto", padding: "0 16px" }}>
           <div style={styles.heroGrid}>
-            <div style={{ ...styles.card, background: isAdmin ? "rgba(15, 23, 42, 0.85)" : "rgba(6, 78, 59, 0.85)" }}>
+            <div style={{ ...styles.card, borderLeft: isAdmin ? "4px solid #3b82f6" : "4px solid #22c55e" }}>
               <span style={styles.cardHeaderLabel}>
-                TOTAL KAS TERKUMPUL (TERVERIFIKASI)
+                TOTAL KAS TERVERIFIKASI
               </span>
-              <h1 style={{ fontSize: "32px", color: "#22c55e", margin: "8px 0" }}>
+              <h1 style={{ fontSize: "30px", color: "#22c55e", margin: "6px 0", fontWeight: "800" }}>
                 Rp {totalVerified.toLocaleString("id-ID")}
               </h1>
-              <p style={{ fontSize: "11px", color: "#9ca3af", margin: 0 }}>
+              <p style={{ fontSize: "11px", color: "#71717a", margin: 0 }}>
                 {isAdmin
-                  ? "Akses kontrol penuh administrator master"
-                  : "Akumulasi saldo kas resmi organisasi terverifikasi"}
+                  ? "Panel verifikasi & manajemen saldo seluruh kas"
+                  : "Akumulasi saldo kas resmi organisasi"}
               </p>
             </div>
 
@@ -338,7 +336,7 @@ function App() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                   <input
                     type="text"
-                    placeholder="Username Baru"
+                    placeholder="Username"
                     value={newUsername}
                     onChange={(e) => setNewUsername(e.target.value)}
                     required
@@ -346,21 +344,20 @@ function App() {
                   />
                   <input
                     type="password"
-                    placeholder="Password Baru (Opsional)"
+                    placeholder="Sandi Baru (Opsional)"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     style={styles.inputSm}
                   />
                 </div>
-                <button type="submit" style={styles.btnSaveSm}>Update Akun Saya</button>
+                <button type="submit" style={styles.btnSaveSm}>Simpan Perubahan</button>
               </form>
             </div>
           </div>
 
-          {/* DUA PANEL DIBAGI: AKUMULASI KAS & FORM INPUT */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px", marginTop: "16px" }}>
             <div style={styles.card}>
-              <h3 style={styles.cardTitle}>📊 Kas Per Anggota</h3>
+              <h3 style={styles.cardTitle}>Akumulasi Pembayaran Per Anggota</h3>
               <div style={{ overflowX: "auto" }}>
                 <table style={styles.table}>
                   <thead>
@@ -372,12 +369,12 @@ function App() {
                   <tbody>
                     {Object.keys(rekapPerPembayar).length === 0 ? (
                       <tr>
-                        <td colSpan="2" style={styles.tdEmpty}>Belum ada pembayaran terverifikasi.</td>
+                        <td colSpan="2" style={styles.tdEmpty}>Belum ada data pembayaran terverifikasi.</td>
                       </tr>
                     ) : (
                       Object.entries(rekapPerPembayar).map(([nama, totalAmount], idx) => (
                         <tr key={idx} style={styles.tr}>
-                          <td style={styles.tdWhite}>👤 {nama}</td>
+                          <td style={styles.tdWhite}>{nama}</td>
                           <td style={{ ...styles.tdGreen, textAlign: "right" }}>
                             Rp {totalAmount.toLocaleString("id-ID")}
                           </td>
@@ -390,17 +387,16 @@ function App() {
             </div>
 
             <div style={styles.card}>
-              <h3 style={styles.cardTitle}>📥 Input Pemasukan Kas DANA</h3>
+              <h3 style={styles.cardTitle}>Input Pembayaran Kas</h3>
               <InputForm onSuccess={fetchTransaksi} />
             </div>
           </div>
 
-          {/* FEATURE KHUSUS ADMIN: KALENDER FILTER & RIWAYAT DETIL ANGGOTA */}
           {isAdmin && (
-            <div style={{ ...styles.card, marginTop: "16px", border: "1px solid #3b82f6" }}>
+            <div style={{ ...styles.card, marginTop: "16px", border: "1px solid #1e3a8a" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
                 <h3 style={{ ...styles.cardTitle, margin: 0 }}>
-                  📅 Kalender & Filter Riwayat Transaksi Anggota
+                  Filter Transaksi Per Anggota
                 </h3>
                 <button
                   type="button"
@@ -408,16 +404,15 @@ function App() {
                     setFilterDate("");
                     setFilterMemberName("");
                   }}
-                  style={{ ...styles.btnEdit, background: "#374151" }}
+                  style={{ ...styles.btnEdit, background: "#27272a" }}
                 >
-                  🔄 Reset Filter
+                  Reset Filter
                 </button>
               </div>
 
-              {/* PANEL KALENDER & PENCARIAN ANGGOTA */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", marginBottom: "16px", background: "#09090b", padding: "12px", borderRadius: "8px", border: "1px solid #27272a" }}>
                 <div>
-                  <label style={{ ...styles.label, marginBottom: "4px" }}>Pilih Tanggal (Kalender):</label>
+                  <label style={{ ...styles.label, marginBottom: "4px" }}>Tanggal:</label>
                   <input
                     type="date"
                     value={filterDate}
@@ -426,10 +421,10 @@ function App() {
                   />
                 </div>
                 <div>
-                  <label style={{ ...styles.label, marginBottom: "4px" }}>Cari Nama Anggota:</label>
+                  <label style={{ ...styles.label, marginBottom: "4px" }}>Nama Anggota:</label>
                   <input
                     type="text"
-                    placeholder="Contoh: Aril / Adam..."
+                    placeholder="Nama anggota..."
                     value={filterMemberName}
                     onChange={(e) => setFilterMemberName(e.target.value)}
                     style={{ ...styles.inputSm, background: "#18181b" }}
@@ -437,13 +432,12 @@ function App() {
                 </div>
               </div>
 
-              {/* TABEL PERIKSA DETAIL */}
               <div style={{ overflowX: "auto" }}>
                 <table style={styles.table}>
                   <thead>
                     <tr>
                       <th style={styles.th}>TANGGAL</th>
-                      <th style={styles.th}>NAMA PEMBAYAR</th>
+                      <th style={styles.th}>PEMBAYAR</th>
                       <th style={styles.th}>NOMINAL</th>
                       <th style={styles.th}>STATUS</th>
                       <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
@@ -453,34 +447,34 @@ function App() {
                     {filteredTransaksi.length === 0 ? (
                       <tr>
                         <td colSpan="5" style={styles.tdEmpty}>
-                          Tidak ada transaksi sesuai filter tanggal/nama yang dipilih.
+                          Tidak ditemukan data transaksi.
                         </td>
                       </tr>
                     ) : (
                       filteredTransaksi.map((item) => (
                         <tr key={item.id} style={styles.tr}>
                           <td style={styles.tdMuted}>{item.transaction_date || "-"}</td>
-                          <td style={styles.tdWhite}>👤 {item.payer_name || item.keterangan || "-"}</td>
+                          <td style={styles.tdWhite}>{item.payer_name || item.keterangan || "-"}</td>
                           <td style={styles.tdGreen}>+Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}</td>
                           <td style={styles.td}>
                             <span style={item.status === "settlement" || item.status === "lunas" ? styles.badgeSuccess : styles.badgePending}>
-                              {item.status === "settlement" || item.status === "lunas" ? "Disetujui" : "⏳ Pending"}
+                              {item.status === "settlement" || item.status === "lunas" ? "Disetujui" : "Pending"}
                             </span>
                           </td>
                           <td style={{ ...styles.td, textAlign: "right" }}>
-                            <div style={{ display: "flex", gap: "4px", justifyContent: "flex-end" }}>
+                            <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
                               {item.description && item.description.startsWith("data:image") && (
                                 <button onClick={() => setSelectedProof(item.description)} style={styles.btnProof}>
-                                  🖼️ Bukti
+                                  Bukti
                                 </button>
                               )}
                               {(item.status === "pending" || !item.status) && (
                                 <>
                                   <button onClick={() => handleVerifikasi(item.id)} style={styles.btnApprove}>
-                                    ✔ Setujui
+                                    Setujui
                                   </button>
                                   <button onClick={() => handleTolak(item.id)} style={styles.btnReject}>
-                                    ✖ Tolak
+                                    Tolak
                                   </button>
                                 </>
                               )}
@@ -495,9 +489,8 @@ function App() {
             </div>
           )}
 
-          {/* TABEL JURNAL TRANSAKSI KESELURUHANS */}
           <div style={{ ...styles.card, marginTop: "16px" }}>
-            <h3 style={styles.cardTitle}>📜 Jurnal Utama Kas Masuk</h3>
+            <h3 style={styles.cardTitle}>Jurnal Transaksi Kas</h3>
             <div style={{ overflowX: "auto" }}>
               <table style={styles.table}>
                 <thead>
@@ -522,14 +515,14 @@ function App() {
                         <td style={styles.tdGreen}>+Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}</td>
                         <td style={styles.td}>
                           <span style={item.status === "settlement" || item.status === "lunas" ? styles.badgeSuccess : styles.badgePending}>
-                            {item.status === "settlement" || item.status === "lunas" ? "Disetujui" : "⏳ Pending"}
+                            {item.status === "settlement" || item.status === "lunas" ? "Disetujui" : "Pending"}
                           </span>
                         </td>
                         <td style={{ ...styles.td, textAlign: "right" }}>
-                          <div style={{ display: "flex", gap: "4px", justifyContent: "flex-end" }}>
+                          <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
                             {item.description && item.description.startsWith("data:image") && (
                               <button onClick={() => setSelectedProof(item.description)} style={styles.btnProof}>
-                                🖼️ Bukti
+                                Bukti
                               </button>
                             )}
                           </div>
@@ -542,19 +535,18 @@ function App() {
             </div>
           </div>
 
-          {/* MANAJEMEN USERNAME & PASSWORD SELURUH ANGGOTA (KHUSUS ADMIN) */}
           {isAdmin && (
             <div style={{ ...styles.card, marginTop: "16px" }}>
-              <h3 style={styles.cardTitle}>🔑 Manajemen Kredensial Seluruh Anggota</h3>
+              <h3 style={styles.cardTitle}>Manajemen Kredensial Anggota</h3>
               <div style={{ overflowX: "auto" }}>
                 <table style={styles.table}>
                   <thead>
                     <tr>
                       <th style={styles.th}>ID</th>
                       <th style={styles.th}>NAMA LENGKAP</th>
-                      <th style={styles.th}>EMAIL LOGIN</th>
-                      <th style={styles.th}>PASSWORD SAAT INI</th>
-                      <th style={{ ...styles.th, textAlign: "right" }}>AKSI ADMIN</th>
+                      <th style={styles.th}>EMAIL</th>
+                      <th style={styles.th}>KATA SANDI</th>
+                      <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -601,7 +593,7 @@ function App() {
                               }}
                               style={styles.btnEdit}
                             >
-                              ✏️ Edit Akun
+                              Edit
                             </button>
                           )}
                         </td>
@@ -629,7 +621,7 @@ const styles = {
   loginCard: {
     background: "#18181b",
     border: "1px solid #27272a",
-    borderRadius: "12px",
+    borderRadius: "10px",
     padding: "24px",
     width: "100%",
     maxWidth: "340px",
@@ -637,16 +629,16 @@ const styles = {
   label: { display: "block", fontSize: "11px", color: "#a1a1aa", marginBottom: "6px", fontWeight: "600" },
   input: {
     width: "100%",
-    padding: "10px",
+    padding: "10px 12px",
     background: "#09090b",
     border: "1px solid #27272a",
     color: "#f4f4f5",
-    borderRadius: "8px",
+    borderRadius: "6px",
     boxSizing: "border-box",
     fontSize: "13px",
   },
   inputSm: {
-    padding: "6px 8px",
+    padding: "6px 10px",
     background: "#09090b",
     border: "1px solid #27272a",
     color: "#f4f4f5",
@@ -662,38 +654,39 @@ const styles = {
     background: "#2563eb",
     color: "#fff",
     border: "none",
-    borderRadius: "8px",
+    borderRadius: "6px",
     fontWeight: "700",
     cursor: "pointer",
+    fontSize: "13px",
   },
-  errorBox: { background: "#3f1315", border: "1px solid #991b1b", color: "#fca5a5", padding: "8px", borderRadius: "6px", fontSize: "11px", marginBottom: "12px" },
-  navbar: { padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" },
-  userBadge: { display: "flex", alignItems: "center", gap: "8px", background: "rgba(0,0,0,0.2)", padding: "4px 8px", borderRadius: "6px" },
+  errorBox: { background: "#3f1315", border: "1px solid #991b1b", color: "#fca5a5", padding: "8px 12px", borderRadius: "6px", fontSize: "11px", marginBottom: "12px" },
+  navbar: { padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#18181b" },
+  userBadge: { display: "flex", alignItems: "center", gap: "8px", background: "#09090b", padding: "4px 10px", borderRadius: "6px", border: "1px solid #27272a" },
   badgeAdmin: { background: "#2563eb", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: "800" },
   badgeMember: { background: "#16a34a", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: "800" },
-  btnLogout: { background: "#dc2626", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", cursor: "pointer" },
+  btnLogout: { background: "#dc2626", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "600", cursor: "pointer" },
   heroGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" },
-  card: { background: "rgba(24, 24, 27, 0.85)", border: "1px solid #27272a", borderRadius: "12px", padding: "18px", backdropFilter: "blur(8px)" },
-  cardHeaderLabel: { fontSize: "10px", fontWeight: "800", color: "#9ca3af", letterSpacing: "1px" },
+  card: { background: "#18181b", border: "1px solid #27272a", borderRadius: "10px", padding: "18px" },
+  cardHeaderLabel: { fontSize: "10px", fontWeight: "800", color: "#a1a1aa", letterSpacing: "1px" },
   cardTitle: { fontSize: "14px", fontWeight: "700", marginTop: 0, marginBottom: "12px", color: "#f4f4f5" },
   btnSaveSm: { background: "#16a34a", color: "#fff", border: "none", padding: "6px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer", marginTop: "8px", width: "100%" },
-  btnEdit: { background: "#2563eb", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", cursor: "pointer" },
+  btnEdit: { background: "#2563eb", color: "#fff", border: "none", padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "600", cursor: "pointer" },
   table: { width: "100%", borderCollapse: "collapse", fontSize: "12px" },
-  th: { textAlign: "left", padding: "8px", color: "#a1a1aa", fontSize: "10px", borderBottom: "1px solid #27272a" },
-  tr: { borderBottom: "1px solid #18181b" },
-  td: { padding: "8px" },
-  tdMuted: { padding: "8px", color: "#a1a1aa" },
-  tdWhite: { padding: "8px", color: "#f4f4f5", fontWeight: "600" },
-  tdGreen: { padding: "8px", color: "#22c55e", fontWeight: "700" },
+  th: { textAlign: "left", padding: "8px", color: "#a1a1aa", fontSize: "10px", borderBottom: "1px solid #27272a", fontWeight: "700" },
+  tr: { borderBottom: "1px solid #27272a" },
+  td: { padding: "10px 8px" },
+  tdMuted: { padding: "10px 8px", color: "#a1a1aa" },
+  tdWhite: { padding: "10px 8px", color: "#f4f4f5", fontWeight: "600" },
+  tdGreen: { padding: "10px 8px", color: "#22c55e", fontWeight: "700" },
   tdEmpty: { padding: "16px", textAlign: "center", color: "#a1a1aa" },
   badgeSuccess: { background: "rgba(34, 197, 94, 0.15)", color: "#22c55e", padding: "2px 6px", borderRadius: "4px", fontSize: "10px", fontWeight: "700" },
   badgePending: { background: "rgba(234, 179, 8, 0.15)", color: "#eab308", padding: "2px 6px", borderRadius: "4px", fontSize: "10px", fontWeight: "700" },
-  btnProof: { background: "#7c3aed", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", fontSize: "10px", cursor: "pointer" },
-  btnApprove: { background: "#16a34a", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", fontSize: "10px", cursor: "pointer" },
-  btnReject: { background: "#dc2626", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", fontSize: "10px", cursor: "pointer" },
+  btnProof: { background: "#7c3aed", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: "600", cursor: "pointer" },
+  btnApprove: { background: "#16a34a", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: "600", cursor: "pointer" },
+  btnReject: { background: "#dc2626", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: "600", cursor: "pointer" },
   modalOverlay: { position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" },
-  modalContent: { background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", padding: "16px", maxWidth: "450px", width: "100%", textAlign: "center" },
-  proofImg: { width: "100%", maxHeight: "60vh", objectFit: "contain", borderRadius: "8px", border: "1px solid #27272a" },
+  modalContent: { background: "#18181b", border: "1px solid #27272a", borderRadius: "10px", padding: "16px", maxWidth: "450px", width: "100%", textAlign: "center" },
+  proofImg: { width: "100%", maxHeight: "60vh", objectFit: "contain", borderRadius: "6px", border: "1px solid #27272a" },
   btnCloseModal: { marginTop: "12px", background: "#dc2626", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" },
 };
 

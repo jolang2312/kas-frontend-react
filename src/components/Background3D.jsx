@@ -17,56 +17,39 @@ function Background3D({ role }) {
     };
     window.addEventListener("resize", handleResize);
 
-    // Membuat 80 Partikel Mini (3D Nodes Grid Effect)
-    const particleCount = 80;
-    const particles = Array.from({ length: particleCount }).map(() => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      z: Math.random() * 2 + 0.5,
-      radius: Math.random() * 1.5 + 0.8,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: (Math.random() - 0.5) * 0.4,
-    }));
+    // Animasi Grid 3D Perspektif Unik (Stealth Floating Grid)
+    const columns = Math.floor(width / 30);
+    const rows = Math.floor(height / 30);
+    let time = 0;
 
     let animationFrameId;
 
     const render = () => {
-      ctx.fillStyle = "#09090b";
+      ctx.fillStyle = "#09090b"; // Pure Dark Background
       ctx.fillRect(0, 0, width, height);
 
       const isAdmin = role === "admin";
-      const particleColor = isAdmin
-        ? "rgba(59, 130, 246, 0.4)"
-        : "rgba(34, 197, 94, 0.35)";
-      const lineColor = isAdmin
-        ? "rgba(37, 99, 235, 0.08)"
-        : "rgba(22, 163, 74, 0.07)";
+      const accentRgb = isAdmin ? "59, 130, 246" : "34, 197, 94";
 
-      particles.forEach((p, idx) => {
-        p.x += p.vx * p.z;
-        p.y += p.vy * p.z;
+      time += 0.015;
 
-        if (p.x < 0 || p.x > width) p.vx *= -1;
-        if (p.y < 0 || p.y > height) p.vy *= -1;
+      // Render Floating Matrix Depth Grid
+      for (let i = 0; i < columns; i++) {
+        for (let j = 0; j < rows; j++) {
+          const x = (i + 0.5) * (width / columns);
+          const y = (j + 0.5) * (height / rows);
 
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius * p.z, 0, Math.PI * 2);
-        ctx.fillStyle = particleColor;
-        ctx.fill();
+          // Gelombang Matematika untuk Efek Kedalaman 3D Realtime
+          const dist = Math.sin(i * 0.2 + time) + Math.cos(j * 0.2 + time);
+          const size = Math.max(0.5, (dist + 2) * 0.8);
+          const opacity = Math.min(0.25, Math.max(0.02, (dist + 1.5) * 0.08));
 
-        for (let j = idx + 1; j < particles.length; j++) {
-          const p2 = particles[j];
-          const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
-          if (dist < 100) {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = lineColor;
-            ctx.lineWidth = 0.6 * p.z;
-            ctx.stroke();
-          }
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${accentRgb}, ${opacity})`;
+          ctx.fill();
         }
-      });
+      }
 
       animationFrameId = requestAnimationFrame(render);
     };
