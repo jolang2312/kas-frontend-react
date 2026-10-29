@@ -31,7 +31,10 @@ function InputForm({ onSuccess }) {
     try {
       const valNominal = parseInt(nominal);
       
-      // Format tanggal string standar yang aman untuk PostgreSQL (YYYY-MM-DD HH:mm:ss)
+      // Ambil data user aktif dari localStorage untuk mengisi officer_name
+      const savedUser = JSON.parse(localStorage.getItem("user")) || {};
+      const officerName = savedUser.name || "Sistem / Anggota";
+
       const now = new Date();
       const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);
 
@@ -43,7 +46,8 @@ function InputForm({ onSuccess }) {
             amount: valNominal,
             payment_method: "DANA QR",
             transaction_type: "income",
-            transaction_date: formattedDate
+            transaction_date: formattedDate,
+            officer_name: officerName
           }
         ]);
 
