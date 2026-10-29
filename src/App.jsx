@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import InputForm from "./components/InputForm";
 import Background3D from "./components/Background3D";
+import Mini3D from "./components/Mini3D";
 import { supabase } from "./supabaseClient";
 import logoImg from "./assets/logo.jpeg"; 
 
@@ -247,7 +248,7 @@ function App() {
     printWindow.document.close();
   };
 
-  // LOGIKA MENGHITUNG TOTAL PER NAMA PEMBAYAR
+  // REKAP AKUMULASI PER PEMBAYAR
   const rekapPerPembayar = transaksi
     .filter((item) => item.status === "settlement" || item.status === "lunas")
     .reduce((acc, curr) => {
@@ -261,7 +262,7 @@ function App() {
     return (
       <div style={styles.loginContainer}>
         <Background3D />
-        <div style={{ ...styles.loginCard, position: "relative", zIndex: 1 }} className="card-3d-appear">
+        <div style={{ ...styles.loginCard, position: "relative", zIndex: 1 }} className="card-3d-appear panel-glass">
           <div style={styles.logoWrapper}>
             <img src={logoImg} alt="Southern Base" style={styles.logoImg} />
             <div style={styles.badgeGlow}>SOUTHERN BASE PORTAL</div>
@@ -339,14 +340,15 @@ function App() {
         </header>
 
         <main style={styles.mainContent}>
-          <div style={styles.summaryCard} className="card-3d-appear panel-hover-3d">
+          {/* SUMMARY KAS TERKUMPUL */}
+          <div style={styles.summaryCard} className="card-3d-appear panel-glass panel-hover-3d">
             <div>
               <span style={styles.summaryLabel}>Total Kas Terkumpul (Terverifikasi)</span>
               <h1 style={styles.summaryAmount}>
                 Rp {total.toLocaleString("id-ID")}
               </h1>
               <div style={{ marginTop: "10px" }}>
-                <span style={{ color: "#10b981", fontWeight: "700", fontSize: "11px", background: "rgba(16, 185, 129, 0.1)", padding: "4px 10px", borderRadius: "20px", display: "inline-block" }}>
+                <span style={{ color: "#10b981", fontWeight: "700", fontSize: "11px", background: "rgba(16, 185, 129, 0.15)", padding: "4px 10px", borderRadius: "20px", display: "inline-block" }}>
                   ● Modus Akses: {user.role === "admin" ? "Administrator Master" : "Anggota"}
                 </span>
               </div>
@@ -354,8 +356,11 @@ function App() {
           </div>
 
           {/* TABEL REKAPITULASI TOTAL PER PEMBAYAR */}
-          <div style={{ ...styles.panelCard, marginBottom: "20px" }} className="card-3d-appear panel-hover-3d">
-            <h3 style={styles.panelTitle}>💰 Rekap Akumulasi Pembayaran Per Anggota</h3>
+          <div style={{ ...styles.panelCard, marginBottom: "20px" }} className="card-3d-appear panel-glass panel-hover-3d">
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+              <Mini3D color={0x10b981} />
+              <h3 style={styles.panelTitle}>Rekap Akumulasi Pembayaran Per Anggota</h3>
+            </div>
             <div style={{ overflowX: "auto", width: "100%" }}>
               <table style={styles.table}>
                 <thead>
@@ -387,17 +392,25 @@ function App() {
           </div>
 
           <div style={styles.gridContainer}>
+            {/* PANEL INPUT ANGGOTA */}
             {user.role === "anggota" && (
-              <div style={styles.panelCard} className="card-3d-appear panel-hover-3d">
-                <h3 style={styles.panelTitle}>💳 Input Pemasukan / Kas</h3>
+              <div style={styles.panelCard} className="card-3d-appear panel-glass panel-hover-3d">
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                  <Mini3D color={0x3b82f6} />
+                  <h3 style={styles.panelTitle}>Input Pemasukan / Kas</h3>
+                </div>
                 <InputForm onSuccess={fetchTransaksi} />
               </div>
             )}
 
-            <div style={styles.panelCard} className="card-3d-appear panel-hover-3d">
-              <h3 style={styles.panelTitle}>
-                📊 Riwayat Kas Masuk {user.role === "admin" && "& Verifikasi Struk"}
-              </h3>
+            {/* PANEL RIWAYAT KAS */}
+            <div style={styles.panelCard} className="card-3d-appear panel-glass panel-hover-3d">
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                <Mini3D color={0x60a5fa} />
+                <h3 style={styles.panelTitle}>
+                  Riwayat Kas Masuk {user.role === "admin" && "& Verifikasi Struk"}
+                </h3>
+              </div>
               <div style={{ overflowX: "auto", width: "100%" }}>
                 <table style={styles.table}>
                   <thead>
@@ -469,9 +482,13 @@ function App() {
             </div>
           </div>
 
+          {/* PANEL KELOLA ANGGOTA (ADMIN ONLY) */}
           {user.role === "admin" && (
-            <div style={{ ...styles.panelCard, marginTop: "20px" }} className="card-3d-appear panel-hover-3d">
-              <h3 style={styles.panelTitle}>👥 Kelola Anggota Organisasi</h3>
+            <div style={{ ...styles.panelCard, marginTop: "20px" }} className="card-3d-appear panel-glass panel-hover-3d">
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                <Mini3D color={0xf59e0b} />
+                <h3 style={styles.panelTitle}>Kelola Anggota Organisasi</h3>
+              </div>
 
               <form onSubmit={handleTambahAnggota} style={styles.crudForm}>
                 <input
@@ -555,14 +572,10 @@ const styles = {
     padding: "16px"
   },
   loginCard: {
-    background: "rgba(18, 20, 29, 0.95)",
-    backdropFilter: "blur(12px)",
     padding: "24px",
     borderRadius: "16px",
     width: "100%",
-    maxWidth: "360px",
-    border: "1px solid rgba(255, 255, 255, 0.08)",
-    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)"
+    maxWidth: "360px"
   },
   logoWrapper: {
     textAlign: "center",
@@ -676,15 +689,12 @@ const styles = {
     padding: "0 12px"
   },
   summaryCard: {
-    background: "linear-gradient(135deg, #161925 0%, #11131c 100%)",
-    border: "1px solid #232736",
     borderRadius: "16px",
     padding: "20px",
     marginBottom: "20px",
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
-    boxShadow: "0 8px 24px rgba(0,0,0,0.4)"
+    alignItems: "center"
   },
   summaryLabel: {
     fontSize: "11px",
@@ -705,14 +715,11 @@ const styles = {
     gap: "16px"
   },
   panelCard: {
-    background: "#12141d",
-    border: "1px solid #1f2430",
     borderRadius: "16px",
-    padding: "16px",
-    boxShadow: "0 6px 18px rgba(0,0,0,0.3)"
+    padding: "16px"
   },
   panelTitle: {
-    margin: "0 0 14px 0",
+    margin: 0,
     fontSize: "14px",
     color: "#f8fafc",
     fontWeight: "700"

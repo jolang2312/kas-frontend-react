@@ -35,3 +35,17 @@ body {
   transform: translateY(-5px) rotateX(2deg);
   box-shadow: 0 20px 40px rgba(37, 99, 235, 0.2);
 }
+
+/* PERBAIKAN: Menambahkan kurung kurawal buka { */
+.panel-glass {
+  background: rgba(18, 20, 29, 0.85) !important;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.panel-glass:hover {
+  transform: translateY(-4px) scale(1.005);
+  box-shadow: 0 16px 35px rgba(37, 99, 235, 0.2);
+}
