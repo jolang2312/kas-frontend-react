@@ -22,26 +22,34 @@ function App() {
   const [emailAnggota, setEmailAnggota] = useState("");
   const [passAnggota, setPassAnggota] = useState("");
 
-  // FUNGSI LOGIN VIA SUPABASE DIRECT
+  // FUNGSI LOGIN VIA SUPABASE DIRECT (SOLUSI BEBAS ERROR 404)
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
     setLoadingLogin(true);
 
     try {
-      // 1. Cek User berdasarkan Email & Password
-      const { data: userData, error: userError } = await supabase
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPassword = password.trim();
+
+      // Query array biasa tanpa .single() agar tidak memicu error 404
+      const { data, error } = await supabase
         .from("users")
         .select("*")
-        .eq("email", email)
-        .eq("password", password)
-        .single();
+        .eq("email", cleanEmail)
+        .eq("password", cleanPassword);
 
-      if (userError || !userData) {
+      if (error) {
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
         throw new Error("Email atau password tidak terdaftar / salah!");
       }
 
-      // 2. Simpan user ke localStorage & State
+      const userData = data[0];
+
+      // Simpan user ke localStorage & State
       localStorage.setItem("user", JSON.stringify(userData));
       setUser(userData);
     } catch (error) {
