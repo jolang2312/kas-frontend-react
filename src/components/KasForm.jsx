@@ -32,30 +32,26 @@ function KasForm({ onSuccess }) {
       const orderId = "TRX-DANA-" + Date.now();
       const valNominal = parseInt(nominal);
 
-      // Coba insert dengan nama kolom description terlebih dahulu jika keterangan tidak ada
+      // Hanya memasukkan kolom yang pasti ada di tabel 'transactions' kamu
       let { error } = await supabase
         .from("transactions")
         .insert([
           {
             order_id: orderId,
-            description: keterangan,
-            amount: valNominal,
-            status: "success",
-            created_at: new Date().toISOString()
+            keterangan: keterangan,
+            amount: valNominal
           }
         ]);
 
-      // Fallback jika nama kolom di database ternyata 'keterangan'
-      if (error && error.message.includes("description")) {
+      // Fallback jika kolom di Supabase dinamai 'description' bukan 'keterangan'
+      if (error && error.message.includes("keterangan")) {
         const retry = await supabase
           .from("transactions")
           .insert([
             {
               order_id: orderId,
-              keterangan: keterangan,
-              amount: valNominal,
-              status: "success",
-              created_at: new Date().toISOString()
+              description: keterangan,
+              amount: valNominal
             }
           ]);
         error = retry.error;
