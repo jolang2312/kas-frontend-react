@@ -13,7 +13,6 @@ function InputForm({ onSuccess }) {
   const [copied, setCopied] = useState(false);
   const [imgError, setImgError] = useState(false);
 
-  // DATA DANA & QRIS TERBARU
   const nomorDana = "083153755970";
   const namaPemilik = "Santio Aril";
 
@@ -21,6 +20,16 @@ function InputForm({ onSuccess }) {
     navigator.clipboard.writeText(nomorDana);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Fungsi mengubah file gambar menjadi Base64
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
   };
 
   const handleLanjutKonfirmasi = (e) => {
@@ -60,10 +69,14 @@ function InputForm({ onSuccess }) {
         throw new Error("Nominal tidak valid.");
       }
 
-      // Format tanggal murni YYYY-MM-DD sesuai tipe kolom 'date' Supabase
+      // Convert gambar screenshot ke base64
+      let base64Image = "";
+      if (buktiFile) {
+        base64Image = await convertToBase64(buktiFile);
+      }
+
       const todayDate = new Date().toISOString().split("T")[0];
 
-      // Payload disesuaikan persis dengan struktur kolom di Supabase
       const { error } = await supabase.from("transactions").insert([
         {
           payer_name: keterangan,
@@ -72,7 +85,8 @@ function InputForm({ onSuccess }) {
           transaction_type: "income",
           transaction_date: todayDate,
           officer_name: officerName,
-          status: "pending"
+          status: "pending",
+          description: base64Image // Menyimpan gambar ke kolom description
         },
       ]);
 
@@ -100,7 +114,7 @@ function InputForm({ onSuccess }) {
 
   return (
     <div>
-      {/* MODAL ZOOM POPUP */}
+      {/* MODAL ZOOM POPUP QRIS */}
       {showZoom && !imgError && (
         <div
           onClick={() => setShowZoom(false)}
@@ -463,7 +477,7 @@ function InputForm({ onSuccess }) {
               marginBottom: "16px",
             }}
           >
-            Data akan terkirim dengan status <b>Pending</b>. Admin akan mengecek saldo masuk sebelum menyetujui.
+            Data akan terkirim dengan status <b>Pending</b>. Admin akan mengecek screenshot bukti sebelum menyetujui.
           </div>
 
           <div style={{ display: "flex", gap: "10px" }}>

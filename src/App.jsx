@@ -24,6 +24,9 @@ function App() {
   const [emailAnggota, setEmailAnggota] = useState("");
   const [passAnggota, setPassAnggota] = useState("");
 
+  // State untuk Pop-up Preview Screenshot
+  const [selectedProof, setSelectedProof] = useState(null);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
@@ -248,7 +251,6 @@ function App() {
     printWindow.document.close();
   };
 
-  // REKAP AKUMULASI DENGAN MEMBERSIHKAN NAMA PEMBAYAR
   const rekapPerPembayar = transaksi
     .filter((item) => item.status === "settlement" || item.status === "lunas")
     .reduce((acc, curr) => {
@@ -337,6 +339,72 @@ function App() {
     <div style={{ ...styles.dashboardContainer, position: "relative" }}>
       <Background3D />
 
+      {/* MODAL POPUP LIHAT SCREENSHOT BUKTI TRANSFER */}
+      {selectedProof && (
+        <div
+          onClick={() => setSelectedProof(null)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0, 0, 0, 0.85)",
+            zIndex: 99999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#18181b",
+              border: "1px solid #27272a",
+              borderRadius: "14px",
+              padding: "20px",
+              maxWidth: "500px",
+              width: "100%",
+              textAlign: "center",
+            }}
+          >
+            <h4 style={{ color: "#f4f4f5", marginTop: 0, marginBottom: "14px", fontSize: "15px" }}>
+              🖼️ Screenshot Bukti Transfer
+            </h4>
+            <img
+              src={selectedProof}
+              alt="Screenshot Bukti Transfer"
+              style={{
+                width: "100%",
+                maxHeight: "65vh",
+                objectFit: "contain",
+                borderRadius: "8px",
+                border: "1px solid #27272a",
+                background: "#09090b"
+              }}
+            />
+            <div style={{ marginTop: "16px", textAlign: "right" }}>
+              <button
+                onClick={() => setSelectedProof(null)}
+                style={{
+                  background: "#dc2626",
+                  color: "#fff",
+                  border: "none",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  fontWeight: "700",
+                  fontSize: "12px",
+                  cursor: "pointer"
+                }}
+              >
+                ✖ Tutup Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ position: "relative", zIndex: 1 }}>
         <header style={styles.navbar}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -361,7 +429,7 @@ function App() {
         </header>
 
         <main style={styles.mainContent}>
-          {/* HERO SUMMARY KAS (Matte Surface, Hirarki Utama) */}
+          {/* HERO SUMMARY KAS */}
           <div style={styles.summaryCard} className="card-matte">
             <div>
               <span className="heading-label">Total Kas Terkumpul (Terverifikasi)</span>
@@ -414,7 +482,7 @@ function App() {
               </div>
             </div>
 
-            {/* FORM INPUT ANGGOTA (JIKA ROLE ANGGOTA) */}
+            {/* FORM INPUT ANGGOTA */}
             {user.role === "anggota" && (
               <div style={styles.panelCard} className="card-matte">
                 <div style={{ marginBottom: "14px" }}>
@@ -475,6 +543,16 @@ function App() {
                         </td>
                         <td style={{ ...styles.td, textAlign: "right" }}>
                           <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                            {/* TOMBOL LIHAT SCREENSHOT BUKTI */}
+                            {item.description && item.description.startsWith("data:image") && (
+                              <button
+                                onClick={() => setSelectedProof(item.description)}
+                                style={styles.btnProof}
+                              >
+                                🖼️ Bukti
+                              </button>
+                            )}
+
                             {user.role === "admin" && (item.status === "pending" || !item.status) && (
                               <>
                                 <button
@@ -775,6 +853,17 @@ const styles = {
     borderRadius: "6px",
     fontSize: "10px",
     fontWeight: "700",
+    whiteSpace: "nowrap"
+  },
+  btnProof: {
+    background: "#7c3aed",
+    color: "#fff",
+    border: "none",
+    padding: "5px 10px",
+    borderRadius: "6px",
+    fontSize: "11px",
+    fontWeight: "600",
+    cursor: "pointer",
     whiteSpace: "nowrap"
   },
   btnAction: {
