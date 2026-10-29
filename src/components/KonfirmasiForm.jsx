@@ -31,14 +31,14 @@ function KonfirmasiForm({ onSuccess }) {
     try {
       const valNominal = parseInt(nominal);
 
-      // Menggunakan payer_name sesuai kolom asli di Supabase
+      // Menyimpan langsung ke tabel transactions di Supabase
       const { error } = await supabase
         .from("transactions")
         .insert([
           {
             payer_name: keterangan,
             amount: valNominal,
-            payment_method: "DANA",
+            payment_method: "DANA QR",
             transaction_type: "income"
           }
         ]);
