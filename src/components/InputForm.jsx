@@ -60,16 +60,19 @@ function InputForm({ onSuccess }) {
         throw new Error("Nominal tidak valid.");
       }
 
+      // Format tanggal murni YYYY-MM-DD sesuai tipe kolom 'date' Supabase
+      const todayDate = new Date().toISOString().split("T")[0];
+
+      // Payload disesuaikan persis dengan struktur kolom di Supabase
       const { error } = await supabase.from("transactions").insert([
         {
           payer_name: keterangan,
           amount: numericAmount,
           payment_method: "DANA",
           transaction_type: "income",
-          transaction_date: new Date().toISOString(),
+          transaction_date: todayDate,
           officer_name: officerName,
-          status: "pending",
-          description: `Bukti: ${buktiFile ? buktiFile.name : "-"}`,
+          status: "pending"
         },
       ]);
 
@@ -424,7 +427,6 @@ function InputForm({ onSuccess }) {
         <div style={{ background: "#18181b", padding: "18px", borderRadius: "10px", border: "1px solid #27272a" }}>
           <h4 style={{ color: "#f4f4f5", marginTop: "0", marginBottom: "12px", fontSize: "14px" }}>🔍 Periksa Sebelum Mengirim</h4>
 
-          {/* MENAMPILKAN PESAN ERROR DI STEP 2 */}
           {errorMsg && (
             <div
               style={{
