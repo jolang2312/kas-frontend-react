@@ -8,10 +8,6 @@ function KasEntryForm({ onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const handlePilihNominal = (val) => {
-    setNominal(val);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
@@ -31,10 +27,11 @@ function KasEntryForm({ onSuccess }) {
     try {
       const valNominal = parseInt(nominal);
       
-      // Ambil data user aktif dari localStorage
+      // Ambil data user aktif untuk officer_name
       const savedUser = JSON.parse(localStorage.getItem("user")) || {};
       const officerName = savedUser.name || "Anggota Organisasi";
 
+      // Format tanggal database PostgreSQL (YYYY-MM-DD HH:mm:ss)
       const now = new Date();
       const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);
 
@@ -44,7 +41,7 @@ function KasEntryForm({ onSuccess }) {
           {
             payer_name: keterangan,
             amount: valNominal,
-            payment_method: "DANA QR",
+            payment_method: "DANA",
             transaction_type: "income",
             transaction_date: formattedDate,
             officer_name: officerName
@@ -53,7 +50,7 @@ function KasEntryForm({ onSuccess }) {
 
       if (error) throw error;
 
-      alert("Pembayaran/Pemasukan kas berhasil dikonfirmasi dan dicatat!");
+      alert("Pembayaran kas berhasil dicatat!");
       setKeterangan("");
       setNominal(25000);
 
@@ -110,7 +107,7 @@ function KasEntryForm({ onSuccess }) {
           <button
             key={val}
             type="button"
-            onClick={() => handlePilihNominal(val)}
+            onClick={() => setNominal(val)}
             style={{
               padding: "10px",
               background: nominal === val ? "#2563eb" : "#1a1d28",
