@@ -248,13 +248,17 @@ function App() {
     printWindow.document.close();
   };
 
-  // REKAP AKUMULASI PER PEMBAYAR
+  // REKAP AKUMULASI DENGAN MEMBERSIHKAN NAMA PEMBAYAR
   const rekapPerPembayar = transaksi
     .filter((item) => item.status === "settlement" || item.status === "lunas")
     .reduce((acc, curr) => {
-      const nama = curr.payer_name || curr.keterangan || "Anonim";
+      let rawName = curr.payer_name || curr.keterangan || "Anonim";
+      // Ambil nama utama jika formatnya 'Andi - Kas Bulan Ini'
+      let cleanName = rawName.split("-")[0].trim();
+      if (!cleanName) cleanName = "Anonim";
+
       const nominal = parseInt(curr.amount || curr.jumlah || 0);
-      acc[nama] = (acc[nama] || 0) + nominal;
+      acc[cleanName] = (acc[cleanName] || 0) + nominal;
       return acc;
     }, {});
 
@@ -365,7 +369,7 @@ function App() {
               <table style={styles.table}>
                 <thead>
                   <tr style={styles.tableHeaderRow}>
-                    <th style={styles.th}>NAMA PEMBAYAR</th>
+                    <th style={styles.th}>NAMA ANGGOTA</th>
                     <th style={{ ...styles.th, textAlign: "right" }}>TOTAL TERKUMPUL</th>
                   </tr>
                 </thead>
