@@ -12,8 +12,9 @@ function InputForm({ onSuccess }) {
   const [showZoom, setShowZoom] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // NOMOR DANA DIPERBARUI
-  const nomorDana = "087855015513"; 
+  // NOMOR DANA & NAMA PEMILIK DIPERBARUI
+  const nomorDana = "083153755970"; 
+  const namaPemilik = "Santio Aril";
 
   const handleCopyNomor = () => {
     navigator.clipboard.writeText(nomorDana);
@@ -126,7 +127,7 @@ function InputForm({ onSuccess }) {
             <div style={{ marginTop: "16px", display: "flex", gap: "10px", justifyContent: "center" }}>
               <a 
                 href={qrisImg} 
-                download="QRIS_DANA_SUMAIYAH.jpeg"
+                download="QRIS_DANA_Santio_Aril.jpeg"
                 style={{
                   background: "#2563eb",
                   color: "#fff",
@@ -198,7 +199,7 @@ function InputForm({ onSuccess }) {
               </span>
             </div>
 
-            {/* KETERANGAN NOMOR DANA BARU */}
+            {/* KETERANGAN NAMA DAN NOMOR DANA BARU */}
             <div style={{
               marginTop: "14px",
               paddingTop: "12px",
@@ -207,7 +208,7 @@ function InputForm({ onSuccess }) {
               textAlign: "center"
             }}>
               <p style={{ margin: "0 0 4px 0", fontSize: "11px", color: "#0086e6", fontWeight: "bold" }}>
-                ● Transfer DANA a.n. SUMAIYAH
+                ● Transfer DANA a.n. {namaPemilik}
               </p>
               <div style={{
                 display: "inline-flex",
