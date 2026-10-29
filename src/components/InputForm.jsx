@@ -9,7 +9,16 @@ function InputForm({ onSuccess }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [showZoom, setShowZoom] = useState(false); // State untuk kontrol Zoom QRIS
+  const [showZoom, setShowZoom] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const nomorDana = "081234567890"; // Ganti dengan nomor DANA tujuan Anda
+
+  const handleCopyNomor = () => {
+    navigator.clipboard.writeText(nomorDana);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleLanjutKonfirmasi = (e) => {
     e.preventDefault();
@@ -80,7 +89,7 @@ function InputForm({ onSuccess }) {
 
   return (
     <div>
-      {/* MODAL ZOOM POPUP UNTUK MEMPERBESAR QRIS */}
+      {/* MODAL ZOOM POPUP UNTUK POPUP TAMPILAN JELAS */}
       {showZoom && (
         <div 
           onClick={() => setShowZoom(false)}
@@ -90,7 +99,7 @@ function InputForm({ onSuccess }) {
             left: 0,
             width: "100vw",
             height: "100vh",
-            backgroundColor: "rgba(0, 0, 0, 0.85)",
+            backgroundColor: "rgba(0, 0, 0, 0.9)",
             zIndex: 99999,
             display: "flex",
             flexDirection: "column",
@@ -100,22 +109,51 @@ function InputForm({ onSuccess }) {
             padding: "20px"
           }}
         >
-          <div style={{ position: "relative", textAlign: "center" }}>
+          <div style={{ position: "relative", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
             <img 
               src={qrisImg} 
               alt="QRIS DANA Zoom" 
               style={{
                 maxWidth: "90vw",
-                maxHeight: "80vh",
+                maxHeight: "75vh",
                 borderRadius: "16px",
                 boxShadow: "0 0 25px rgba(255,255,255,0.2)",
                 background: "#fff",
                 padding: "12px"
               }} 
             />
-            <p style={{ color: "#fff", marginTop: "14px", fontSize: "13px", fontWeight: "600" }}>
-              🔍 Klik di mana saja untuk menutup gambar
-            </p>
+            <div style={{ marginTop: "16px", display: "flex", gap: "10px", justifyContent: "center" }}>
+              <a 
+                href={qrisImg} 
+                download="QRIS_DANA_SUMAIYAH.jpeg"
+                style={{
+                  background: "#2563eb",
+                  color: "#fff",
+                  padding: "10px 16px",
+                  borderRadius: "8px",
+                  textDecoration: "none",
+                  fontWeight: "bold",
+                  fontSize: "13px"
+                }}
+              >
+                📥 Unduh QRIS
+              </a>
+              <button 
+                onClick={() => setShowZoom(false)}
+                style={{
+                  background: "#dc2626",
+                  color: "#fff",
+                  border: "none",
+                  padding: "10px 16px",
+                  borderRadius: "8px",
+                  fontWeight: "bold",
+                  fontSize: "13px",
+                  cursor: "pointer"
+                }}
+              >
+                ✖ Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -123,7 +161,7 @@ function InputForm({ onSuccess }) {
       {step === 1 ? (
         <>
           <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px" }}>
-            Scan QR Code DANA, lakukan transfer, lalu unggah bukti transfer.
+            Scan QR Code DANA atau gunakan Nomor DANA di bawah untuk melalukan transfer.
           </p>
 
           <div style={{
@@ -148,19 +186,58 @@ function InputForm({ onSuccess }) {
                 position: "absolute",
                 bottom: "10px",
                 right: "10px",
-                background: "rgba(0,0,0,0.7)",
+                background: "rgba(0,0,0,0.75)",
                 color: "#fff",
                 padding: "4px 8px",
                 borderRadius: "6px",
                 fontSize: "10px",
                 fontWeight: "bold"
               }}>
-                🔍 Klik Perbesar
+                🔍 Perbesar / Zoom
               </span>
             </div>
-            <p style={{ margin: "10px 0 0 0", fontSize: "11px", color: "#0086e6", fontWeight: "bold" }}>
-              ● Transfer via Aplikasi DANA (Atas Nama: SUMAIYAH)
-            </p>
+
+            {/* KETERANGAN NOMOR DANA & TOMBOL COPY */}
+            <div style={{
+              marginTop: "14px",
+              paddingTop: "12px",
+              borderTop: "1px dashed #e2e8f0",
+              color: "#0f172a",
+              textAlign: "center"
+            }}>
+              <p style={{ margin: "0 0 4px 0", fontSize: "11px", color: "#0086e6", fontWeight: "bold" }}>
+                ● Transfer DANA a.n. SUMAIYAH
+              </p>
+              <div style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "#f1f5f9",
+                padding: "6px 12px",
+                borderRadius: "8px",
+                marginTop: "6px"
+              }}>
+                <span style={{ fontWeight: "700", fontSize: "13px", color: "#0f172a", fontFamily: "monospace" }}>
+                  {nomorDana}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyNomor}
+                  style={{
+                    background: copied ? "#10b981" : "#2563eb",
+                    color: "#fff",
+                    border: "none",
+                    padding: "4px 8px",
+                    borderRadius: "6px",
+                    fontSize: "11px",
+                    fontWeight: "600",
+                    cursor: "pointer"
+                  }}
+                >
+                  {copied ? "✓ Tersalin" : "📋 Salin"}
+                </button>
+              </div>
+            </div>
           </div>
 
           {errorMsg && (
