@@ -17,8 +17,14 @@ function App() {
   const [loadingLogin, setLoadingLogin] = useState(false);
 
   const [transaksi, setTransaksi] = useState([]);
+  const [kasKeluar, setKasKeluar] = useState([]);
   const [anggotaList, setAnggotaList] = useState([]);
   const [selectedProof, setSelectedProof] = useState(null);
+
+  // Form Kas Keluar (Admin)
+  const [outKeterangan, setOutKeterangan] = useState("");
+  const [outAmount, setOutAmount] = useState("");
+  const [outDate, setOutDate] = useState("");
 
   // Filter khusus Admin
   const [filterDate, setFilterDate] = useState("");
@@ -29,13 +35,12 @@ function App() {
   const [newPassword, setNewPassword] = useState("");
   const [profileMsg, setProfileMsg] = useState("");
 
-  // CRUD Tambah Anggota Baru (Khusus Admin)
+  // CRUD Anggota (Admin)
   const [addName, setAddName] = useState("");
   const [addEmail, setAddEmail] = useState("");
   const [addPass, setAddPass] = useState("");
   const [addRole, setAddRole] = useState("anggota");
 
-  // Edit Credential Anggota Oleh Admin
   const [editingUserId, setEditingUserId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
@@ -80,6 +85,7 @@ function App() {
     setEmail("");
     setPassword("");
     setTransaksi([]);
+    setKasKeluar([]);
   };
 
   const fetchTransaksi = async () => {
@@ -93,6 +99,19 @@ function App() {
       setTransaksi(data || []);
     } catch (err) {
       console.error("Gagal mengambil data transaksi:", err.message);
+    }
+  };
+
+  const fetchKasKeluar = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("*")
+        .order("id", { ascending: false });
+
+      if (!error && data) setKasKeluar(data);
+    } catch (err) {
+      console.error("Gagal mengambil data kas keluar:", err.message);
     }
   };
 
@@ -113,13 +132,13 @@ function App() {
     if (user) {
       setNewUsername(user.name);
       fetchTransaksi();
+      fetchKasKeluar();
       if (user.role === "admin") {
         fetchAnggota();
       }
     }
   }, [user]);
 
-  // Update profil pribadi (Username & Password)
   const handleUpdateProfilePribadi = async (e) => {
     e.preventDefault();
     setProfileMsg("");
@@ -152,7 +171,31 @@ function App() {
     }
   };
 
-  // CREATE: Tambah Anggota Baru Oleh Admin
+  // Tambah Kas Keluar (Admin)
+  const handleTambahKasKeluar = async (e) => {
+    e.preventDefault();
+    try {
+      const { error } = await supabase.from("expenses").insert([
+        {
+          title: outKeterangan.trim(),
+          amount: parseInt(outAmount),
+          expense_date: outDate || new Date().toISOString().split("T")[0],
+        },
+      ]);
+
+      if (error) throw error;
+
+      alert("Pengeluaran kas berhasil dicatat!");
+      setOutKeterangan("");
+      setOutAmount("");
+      setOutDate("");
+      fetchKasKeluar();
+    } catch (err) {
+      alert("Gagal mencatat pengeluaran: " + err.message);
+    }
+  };
+
+  // CRUD Anggota
   const handleTambahAnggota = async (e) => {
     e.preventDefault();
     try {
@@ -167,7 +210,7 @@ function App() {
 
       if (error) throw error;
 
-      alert(`Pengguna ${addName} berhasil ditambahkan sebagai ${addRole.toUpperCase()}!`);
+      alert(`Pengguna ${addName} berhasil ditambahkan!`);
       setAddName("");
       setAddEmail("");
       setAddPass("");
@@ -178,7 +221,6 @@ function App() {
     }
   };
 
-  // UPDATE: Simpan Perubahan Anggota Oleh Admin
   const handleSaveEditAnggota = async (userId) => {
     try {
       const payload = {
@@ -195,7 +237,7 @@ function App() {
 
       if (error) throw error;
 
-      alert("Data pengguna berhasil diperbarui!");
+      alert("Data pengguna diperbarui!");
       setEditingUserId(null);
       fetchAnggota();
     } catch (err) {
@@ -203,14 +245,13 @@ function App() {
     }
   };
 
-  // DELETE: Hapus Anggota Oleh Admin
   const handleHapusAnggota = async (userId, userName) => {
-    if (window.confirm(`Yakin ingin menghapus pengguna "${userName}" dari sistem?`)) {
+    if (window.confirm(`Yakin ingin menghapus "${userName}"?`)) {
       try {
         const { error } = await supabase.from("users").delete().eq("id", userId);
         if (error) throw error;
 
-        alert(`Pengguna "${userName}" berhasil dihapus.`);
+        alert(`Pengguna "${userName}" dihapus.`);
         fetchAnggota();
       } catch (err) {
         alert("Gagal menghapus pengguna: " + err.message);
@@ -218,11 +259,12 @@ function App() {
     }
   };
 
+  // Verifikasi Transaksi
   const handleVerifikasi = async (id) => {
     try {
       const { error } = await supabase
         .from("transactions")
-        .update({ status: "settlement" })
+        .update({ status: "settlement", rejection_reason: null })
         .eq("id", id);
 
       if (error) throw error;
@@ -232,36 +274,44 @@ function App() {
     }
   };
 
+  // Tolak Transaksi dengan Catatan Alasan
   const handleTolak = async (id) => {
-    if (window.confirm("Batalkan dan hapus data transaksi ini?")) {
+    const reason = window.prompt("Masukkan alasan penolakan pembayaran:");
+    if (reason !== null) {
       try {
         const { error } = await supabase
           .from("transactions")
-          .delete()
+          .update({ status: "ditolak", rejection_reason: reason.trim() || "Tidak sesuai ketentuan." })
           .eq("id", id);
 
         if (error) throw error;
         fetchTransaksi();
       } catch (err) {
-        alert("Gagal membatalkan transaksi: " + err.message);
+        alert("Gagal menolak transaksi: " + err.message);
       }
     }
   };
 
   const isAdmin = user?.role === "admin";
 
-  // Filter transaksi khusus Anggota
   const myTransaksi = transaksi.filter((item) => {
     const payer = (item.payer_name || item.keterangan || "").toLowerCase();
     return payer.includes((user?.name || "").toLowerCase());
   });
 
-  // Total Kas Terverifikasi
-  const totalVerified = (isAdmin ? transaksi : myTransaksi)
+  // Kalkulasi Keuangan
+  const totalIn = transaksi
     .filter((t) => t.status === "settlement" || t.status === "lunas")
     .reduce((acc, c) => acc + parseInt(c.amount || c.jumlah || 0), 0);
 
-  // Rekap Kas Per Anggota (Khusus Admin)
+  const totalOut = kasKeluar.reduce((acc, c) => acc + parseInt(c.amount || 0), 0);
+
+  const totalVerifiedUser = myTransaksi
+    .filter((t) => t.status === "settlement" || t.status === "lunas")
+    .reduce((acc, c) => acc + parseInt(c.amount || c.jumlah || 0), 0);
+
+  const saldoBersih = totalIn - totalOut;
+
   const rekapPerPembayar = transaksi
     .filter((item) => item.status === "settlement" || item.status === "lunas")
     .reduce((acc, curr) => {
@@ -272,7 +322,6 @@ function App() {
       return acc;
     }, {});
 
-  // Filter Admin berdasarkan tanggal & nama
   const filteredTransaksiAdmin = transaksi.filter((item) => {
     const matchesDate = filterDate ? item.transaction_date === filterDate : true;
     const matchesName = filterMemberName
@@ -281,7 +330,10 @@ function App() {
     return matchesDate && matchesName;
   });
 
-  // FORM LOGIN
+  const handlePrintReport = () => {
+    window.print();
+  };
+
   if (!user) {
     return (
       <div style={styles.loginContainer}>
@@ -363,11 +415,16 @@ function App() {
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <img src={logoImg} alt="Logo" style={{ height: "24px", borderRadius: "4px" }} />
             <span style={{ fontWeight: "700", fontSize: "13px", color: "#f4f4f5", letterSpacing: "0.5px" }}>
-              SOUTHERN BASE {isAdmin ? "• MASTER CONTROL DONT SYSTEM" : "• MEMBER PORTAL"}
+              SOUTHERN BASE {isAdmin ? "• MASTER CONTROL SYSTEM" : "• MEMBER PORTAL"}
             </span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            {isAdmin && (
+              <button onClick={handlePrintReport} style={styles.btnPrint}>
+                🖨️ Cetak Laporan
+              </button>
+            )}
             <div style={styles.userBadge}>
               <span style={{ fontSize: "12px", color: "#e4e4e7" }}>{user.name}</span>
               <span style={isAdmin ? styles.badgeAdmin : styles.badgeMember}>
@@ -379,20 +436,21 @@ function App() {
         </header>
 
         <main style={{ maxWidth: "1100px", margin: "24px auto", padding: "0 16px" }}>
-          {/* HERO STATISTIK */}
+          {/* HERO STATISTIK SPREAD */}
           <div style={styles.heroGrid}>
             <div style={{ ...styles.card, borderLeft: isAdmin ? "4px solid #3b82f6" : "4px solid #22c55e" }}>
               <span style={styles.cardHeaderLabel}>
-                {isAdmin ? "TOTAL KAS ORGANISASI (TERVERIFIKASI)" : "KAS TERBAYAR SAYA"}
+                {isAdmin ? "SALDO KAS BERSIH ORGANISASI" : "KAS TERBAYAR SAYA"}
               </span>
-              <h1 style={{ fontSize: "30px", color: "#22c55e", margin: "6px 0", fontWeight: "800" }}>
-                Rp {totalVerified.toLocaleString("id-ID")}
+              <h1 style={{ fontSize: "28px", color: "#22c55e", margin: "6px 0", fontWeight: "800" }}>
+                Rp {(isAdmin ? saldoBersih : totalVerifiedUser).toLocaleString("id-ID")}
               </h1>
-              <p style={{ fontSize: "11px", color: "#71717a", margin: 0 }}>
-                {isAdmin
-                  ? `Total ${anggotaList.length} pengguna terdaftar di sistem master`
-                  : "Akumulasi saldo kas resmi terverifikasi atas nama Anda"}
-              </p>
+              {isAdmin && (
+                <div style={{ display: "flex", gap: "12px", fontSize: "11px", marginTop: "4px" }}>
+                  <span style={{ color: "#a1a1aa" }}>Masuk: <b style={{ color: "#22c55e" }}>+Rp {totalIn.toLocaleString("id-ID")}</b></span>
+                  <span style={{ color: "#a1a1aa" }}>Keluar: <b style={{ color: "#ef4444" }}>-Rp {totalOut.toLocaleString("id-ID")}</b></span>
+                </div>
+              )}
             </div>
 
             <div style={styles.card}>
@@ -421,6 +479,16 @@ function App() {
             </div>
           </div>
 
+          {/* PENGINGAT STATUS KAS (ANGGOTA) */}
+          {!isAdmin && (
+            <div style={{ ...styles.card, marginTop: "16px", borderLeft: "4px solid #eab308", background: "rgba(234, 179, 8, 0.05)" }}>
+              <h4 style={{ margin: "0 0 4px 0", fontSize: "13px", color: "#eab308" }}>📌 Status Kas Anggota</h4>
+              <p style={{ fontSize: "12px", color: "#a1a1aa", margin: 0 }}>
+                Pastikan Anda membayar kas bulanan tepat waktu. Unggah bukti pembayaran melalui form di bawah ini.
+              </p>
+            </div>
+          )}
+
           {/* === TAMPILAN KHUSUS ANGGOTA === */}
           {!isAdmin && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px", marginTop: "16px" }}>
@@ -438,7 +506,7 @@ function App() {
                         <th style={styles.th}>TANGGAL</th>
                         <th style={styles.th}>NOMINAL</th>
                         <th style={styles.th}>STATUS</th>
-                        <th style={{ ...styles.th, textAlign: "right" }}>BUKTI</th>
+                        <th style={{ ...styles.th, textAlign: "right" }}>BUKTI / CATATAN</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -452,16 +520,33 @@ function App() {
                             <td style={styles.tdMuted}>{item.transaction_date || "-"}</td>
                             <td style={styles.tdGreen}>+Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}</td>
                             <td style={styles.td}>
-                              <span style={item.status === "settlement" || item.status === "lunas" ? styles.badgeSuccess : styles.badgePending}>
-                                {item.status === "settlement" || item.status === "lunas" ? "Disetujui" : "Pending"}
+                              <span style={
+                                item.status === "settlement" || item.status === "lunas"
+                                  ? styles.badgeSuccess
+                                  : item.status === "ditolak"
+                                  ? styles.badgeDanger
+                                  : styles.badgePending
+                              }>
+                                {item.status === "settlement" || item.status === "lunas"
+                                  ? "Disetujui"
+                                  : item.status === "ditolak"
+                                  ? "Ditolak"
+                                  : "Pending"}
                               </span>
                             </td>
                             <td style={{ ...styles.td, textAlign: "right" }}>
-                              {item.description && item.description.startsWith("data:image") && (
-                                <button onClick={() => setSelectedProof(item.description)} style={styles.btnProof}>
-                                  Lihat Bukti
-                                </button>
-                              )}
+                              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+                                {item.description && item.description.startsWith("data:image") && (
+                                  <button onClick={() => setSelectedProof(item.description)} style={styles.btnProof}>
+                                    Lihat Bukti
+                                  </button>
+                                )}
+                                {item.rejection_reason && (
+                                  <span style={{ fontSize: "10px", color: "#fca5a5" }}>
+                                    ⚠️ {item.rejection_reason}
+                                  </span>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -476,11 +561,10 @@ function App() {
           {/* === TAMPILAN KHUSUS ADMIN MASTER === */}
           {isAdmin && (
             <>
-              {/* MASTER CRUD ANGGOTA ORGANISASI */}
+              {/* MASTER CRUD ANGGOTA */}
               <div style={{ ...styles.card, marginTop: "16px", border: "1px solid #1e3a8a" }}>
                 <h3 style={styles.cardTitle}>👥 Master Data Anggota Organisasi (CRUD)</h3>
 
-                {/* FORM CREATE ANGGOTA BARU */}
                 <form onSubmit={handleTambahAnggota} style={{ marginBottom: "16px", background: "#09090b", padding: "12px", borderRadius: "8px", border: "1px solid #27272a" }}>
                   <span style={{ fontSize: "11px", fontWeight: "700", color: "#3b82f6", display: "block", marginBottom: "8px" }}>
                     + Tambah Pengguna Baru
@@ -524,7 +608,6 @@ function App() {
                   </div>
                 </form>
 
-                {/* TABEL READ, UPDATE, DELETE ANGGOTA */}
                 <div style={{ overflowX: "auto" }}>
                   <table style={styles.table}>
                     <thead>
@@ -629,6 +712,70 @@ function App() {
                 </div>
               </div>
 
+              {/* MODUL KAS KELUAR (PENGELUARAN) */}
+              <div style={{ ...styles.card, marginTop: "16px", border: "1px solid #991b1b" }}>
+                <h3 style={styles.cardTitle}>💸 Pencatatan Pengeluaran Kas (Kas Keluar)</h3>
+
+                <form onSubmit={handleTambahKasKeluar} style={{ marginBottom: "16px", background: "#09090b", padding: "12px", borderRadius: "8px", border: "1px solid #27272a" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "8px" }}>
+                    <input
+                      type="text"
+                      placeholder="Keterangan Pengeluaran"
+                      value={outKeterangan}
+                      onChange={(e) => setOutKeterangan(e.target.value)}
+                      required
+                      style={styles.inputSm}
+                    />
+                    <input
+                      type="number"
+                      placeholder="Nominal (Rp)"
+                      value={outAmount}
+                      onChange={(e) => setOutAmount(e.target.value)}
+                      required
+                      style={styles.inputSm}
+                    />
+                    <input
+                      type="date"
+                      value={outDate}
+                      onChange={(e) => setOutDate(e.target.value)}
+                      style={{ ...styles.inputSm, colorScheme: "dark" }}
+                    />
+                    <button type="submit" style={{ ...styles.btnReject, width: "100%", padding: "6px" }}>
+                      - Catat Pengeluaran
+                    </button>
+                  </div>
+                </form>
+
+                <div style={{ overflowX: "auto" }}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>TANGGAL</th>
+                        <th style={styles.th}>KETERANGAN</th>
+                        <th style={{ ...styles.th, textAlign: "right" }}>NOMINAL KELUAR</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {kasKeluar.length === 0 ? (
+                        <tr>
+                          <td colSpan="3" style={styles.tdEmpty}>Belum ada riwayat pengeluaran kas.</td>
+                        </tr>
+                      ) : (
+                        kasKeluar.map((item) => (
+                          <tr key={item.id} style={styles.tr}>
+                            <td style={styles.tdMuted}>{item.expense_date || "-"}</td>
+                            <td style={styles.tdWhite}>{item.title}</td>
+                            <td style={{ ...styles.td, textAlign: "right", color: "#ef4444", fontWeight: "700" }}>
+                              -Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
               {/* REKAP KAS PER ANGGOTA */}
               <div style={{ ...styles.card, marginTop: "16px" }}>
                 <h3 style={styles.cardTitle}>📊 Akumulasi Pembayaran Per Anggota</h3>
@@ -725,8 +872,18 @@ function App() {
                             <td style={styles.tdWhite}>{item.payer_name || item.keterangan || "-"}</td>
                             <td style={styles.tdGreen}>+Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}</td>
                             <td style={styles.td}>
-                              <span style={item.status === "settlement" || item.status === "lunas" ? styles.badgeSuccess : styles.badgePending}>
-                                {item.status === "settlement" || item.status === "lunas" ? "Disetujui" : "Pending"}
+                              <span style={
+                                item.status === "settlement" || item.status === "lunas"
+                                  ? styles.badgeSuccess
+                                  : item.status === "ditolak"
+                                  ? styles.badgeDanger
+                                  : styles.badgePending
+                              }>
+                                {item.status === "settlement" || item.status === "lunas"
+                                  ? "Disetujui"
+                                  : item.status === "ditolak"
+                                  ? "Ditolak"
+                                  : "Pending"}
                               </span>
                             </td>
                             <td style={{ ...styles.td, textAlign: "right" }}>
@@ -818,6 +975,7 @@ const styles = {
   badgeAdmin: { background: "#2563eb", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: "800" },
   badgeMember: { background: "#16a34a", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: "800" },
   btnLogout: { background: "#dc2626", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "600", cursor: "pointer" },
+  btnPrint: { background: "#3f3f46", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "600", cursor: "pointer" },
   heroGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" },
   card: { background: "#18181b", border: "1px solid #27272a", borderRadius: "10px", padding: "18px" },
   cardHeaderLabel: { fontSize: "10px", fontWeight: "800", color: "#a1a1aa", letterSpacing: "1px" },
@@ -833,6 +991,7 @@ const styles = {
   tdGreen: { padding: "10px 8px", color: "#22c55e", fontWeight: "700" },
   tdEmpty: { padding: "16px", textAlign: "center", color: "#a1a1aa" },
   badgeSuccess: { background: "rgba(34, 197, 94, 0.15)", color: "#22c55e", padding: "2px 6px", borderRadius: "4px", fontSize: "10px", fontWeight: "700" },
+  badgeDanger: { background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", padding: "2px 6px", borderRadius: "4px", fontSize: "10px", fontWeight: "700" },
   badgePending: { background: "rgba(234, 179, 8, 0.15)", color: "#eab308", padding: "2px 6px", borderRadius: "4px", fontSize: "10px", fontWeight: "700" },
   btnProof: { background: "#7c3aed", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: "600", cursor: "pointer" },
   btnApprove: { background: "#16a34a", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: "600", cursor: "pointer" },
