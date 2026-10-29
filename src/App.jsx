@@ -197,18 +197,18 @@ function App() {
         <head>
           <title>Bukti Transaksi - ${item.order_id || 'TRX-DANA'}</title>
           <style>
-            body { font-family: 'Inter', system-ui, sans-serif; background: #0b0c10; color: #333; padding: 40px; }
-            .card { background: #ffffff; border-radius: 16px; max-width: 480px; margin: 0 auto; padding: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border-top: 6px solid #2563eb; }
-            .header { text-align: center; border-bottom: 2px dashed #e2e8f0; padding-bottom: 20px; margin-bottom: 20px; }
-            .logo { font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: 1.5px; }
+            body { font-family: 'Inter', system-ui, sans-serif; background: #0b0c10; color: #333; padding: 20px; }
+            .card { background: #ffffff; border-radius: 16px; max-width: 480px; margin: 0 auto; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border-top: 6px solid #2563eb; }
+            .header { text-align: center; border-bottom: 2px dashed #e2e8f0; padding-bottom: 16px; margin-bottom: 16px; }
+            .logo { font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: 1.5px; }
             .subtitle { font-size: 12px; color: #64748b; margin-top: 4px; }
-            .item-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
+            .item-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 13px; }
             .label { color: #64748b; }
             .value { font-weight: 600; color: #0f172a; }
-            .status-badge { background: ${item.status === 'pending' ? '#fef9c3' : '#dcfce7'}; color: ${item.status === 'pending' ? '#854d0e' : '#166534'}; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-            .total-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 12px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
-            .total-amount { font-size: 22px; font-weight: 800; color: #16a34a; }
-            .btn-print { width: 100%; padding: 12px; background: #0f172a; color: #fff; border: none; border-radius: 10px; margin-top: 24px; font-size: 14px; font-weight: 600; cursor: pointer; }
+            .status-badge { background: ${item.status === 'pending' ? '#fef9c3' : '#dcfce7'}; color: ${item.status === 'pending' ? '#854d0e' : '#166534'}; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+            .total-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px; border-radius: 12px; margin-top: 16px; display: flex; justify-content: space-between; align-items: center; }
+            .total-amount { font-size: 20px; font-weight: 800; color: #16a34a; }
+            .btn-print { width: 100%; padding: 12px; background: #0f172a; color: #fff; border: none; border-radius: 10px; margin-top: 20px; font-size: 13px; font-weight: 600; cursor: pointer; }
             @media print { .btn-print { display: none; } body { background: #fff; padding: 0; } .card { box-shadow: none; border: 1px solid #ccc; } }
           </style>
         </head>
@@ -247,12 +247,10 @@ function App() {
     printWindow.document.close();
   };
 
-  // HALAMAN LOGIN WITH FULLSCREEN 3D SPIDERWEB BACKGROUND
   if (!user) {
     return (
-      <div style={{ ...styles.loginContainer, position: "relative" }}>
+      <div style={styles.loginContainer}>
         <Background3D />
-
         <div style={{ ...styles.loginCard, position: "relative", zIndex: 1 }} className="card-3d-appear">
           <div style={styles.logoWrapper}>
             <img src={logoImg} alt="Southern Base" style={styles.logoImg} />
@@ -266,7 +264,7 @@ function App() {
           )}
 
           <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: "18px" }}>
+            <div style={{ marginBottom: "16px" }}>
               <label style={styles.label}>Email Address</label>
               <input
                 type="email"
@@ -278,7 +276,7 @@ function App() {
               />
             </div>
 
-            <div style={{ marginBottom: "24px" }}>
+            <div style={{ marginBottom: "20px" }}>
               <label style={styles.label}>Password System</label>
               <input
                 type="password"
@@ -295,7 +293,7 @@ function App() {
             </button>
           </form>
 
-          <p style={{ marginTop: "24px", fontSize: "11px", color: "#64748b", textAlign: "center" }}>
+          <p style={{ marginTop: "20px", fontSize: "11px", color: "#64748b", textAlign: "center" }}>
             Sistem Kas Organisasi Southern Base &copy; 2026
           </p>
         </div>
@@ -303,22 +301,21 @@ function App() {
     );
   }
 
-  // DASHBOARD MAIN WITH FULLSCREEN 3D BACKGROUND
   return (
     <div style={{ ...styles.dashboardContainer, position: "relative" }}>
       <Background3D />
 
       <div style={{ position: "relative", zIndex: 1 }}>
         <header style={styles.navbar}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <img src={logoImg} alt="Southern Base" style={{ height: "32px", borderRadius: "6px" }} />
-            <span style={{ fontWeight: "700", letterSpacing: "1px", color: "#fff", fontSize: "15px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <img src={logoImg} alt="Southern Base" style={{ height: "28px", borderRadius: "6px" }} />
+            <span style={{ fontWeight: "700", letterSpacing: "1px", color: "#fff", fontSize: "14px" }}>
               SOUTHERN BASE
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div style={styles.userInfoBadge}>
-              <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+              <span style={{ fontSize: "11px", color: "#94a3b8" }}>
                 <b style={{ color: "#f8fafc" }}>{user.name}</b>
               </span>
               <span style={user.role === "admin" ? styles.roleAdmin : styles.roleMember}>
@@ -338,19 +335,15 @@ function App() {
               <h1 style={styles.summaryAmount}>
                 Rp {total.toLocaleString("id-ID")}
               </h1>
-              <div style={{ marginTop: "12px" }}>
-                <span style={{ color: "#10b981", fontWeight: "700", fontSize: "12px", background: "rgba(16, 185, 129, 0.1)", padding: "6px 12px", borderRadius: "20px" }}>
+              <div style={{ marginTop: "10px" }}>
+                <span style={{ color: "#10b981", fontWeight: "700", fontSize: "11px", background: "rgba(16, 185, 129, 0.1)", padding: "4px 10px", borderRadius: "20px", display: "inline-block" }}>
                   ● Modus Akses: {user.role === "admin" ? "Administrator Master" : "Anggota"}
                 </span>
               </div>
             </div>
           </div>
 
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: user.role === "anggota" ? "1fr 1.6fr" : "1fr",
-            gap: "24px"
-          }}>
+          <div style={styles.gridContainer}>
             {user.role === "anggota" && (
               <div style={styles.panelCard} className="card-3d-appear panel-hover-3d">
                 <h3 style={styles.panelTitle}>💳 Input Pemasukan / Kas</h3>
@@ -362,7 +355,7 @@ function App() {
               <h3 style={styles.panelTitle}>
                 📊 Riwayat Kas Masuk {user.role === "admin" && "& Verifikasi Struk"}
               </h3>
-              <div style={{ overflowX: "auto" }}>
+              <div style={{ overflowX: "auto", width: "100%" }}>
                 <table style={styles.table}>
                   <thead>
                     <tr style={styles.tableHeaderRow}>
@@ -392,35 +385,37 @@ function App() {
                           </td>
                           <td style={styles.td}>
                             {item.status === "settlement" || item.status === "lunas" ? (
-                              <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700" }}>
+                              <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", padding: "4px 8px", borderRadius: "6px", fontSize: "10px", fontWeight: "700", whiteSpace: "nowrap" }}>
                                 ● Disetujui
                               </span>
                             ) : (
-                              <span style={{ background: "rgba(234, 179, 8, 0.15)", color: "#eab308", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700" }}>
+                              <span style={{ background: "rgba(234, 179, 8, 0.15)", color: "#eab308", padding: "4px 8px", borderRadius: "6px", fontSize: "10px", fontWeight: "700", whiteSpace: "nowrap" }}>
                                 ⏳ Pending
                               </span>
                             )}
                           </td>
-                          <td style={{ ...styles.td, textAlign: "right", display: "flex", gap: "6px", justifyContent: "flex-end" }}>
-                            {user.role === "admin" && (item.status === "pending" || !item.status) && (
-                              <>
-                                <button
-                                  onClick={() => handleVerifikasi(item.id)}
-                                  style={{ background: "#10b981", color: "#fff", border: "none", padding: "6px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
-                                >
-                                  ✔ Setujui
-                                </button>
-                                <button
-                                  onClick={() => handleTolak(item.id)}
-                                  style={{ background: "#dc2626", color: "#fff", border: "none", padding: "6px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
-                                >
-                                  ✖ Tolak
-                                </button>
-                              </>
-                            )}
-                            <button onClick={() => handleDownloadBukti(item)} style={styles.btnAction}>
-                              📥 Struk
-                            </button>
+                          <td style={{ ...styles.td, textAlign: "right" }}>
+                            <div style={{ display: "flex", gap: "4px", justifyContent: "flex-end" }}>
+                              {user.role === "admin" && (item.status === "pending" || !item.status) && (
+                                <>
+                                  <button
+                                    onClick={() => handleVerifikasi(item.id)}
+                                    style={{ background: "#10b981", color: "#fff", border: "none", padding: "5px 8px", borderRadius: "6px", fontSize: "10px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap" }}
+                                  >
+                                    ✔ Setujui
+                                  </button>
+                                  <button
+                                    onClick={() => handleTolak(item.id)}
+                                    style={{ background: "#dc2626", color: "#fff", border: "none", padding: "5px 8px", borderRadius: "6px", fontSize: "10px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap" }}
+                                  >
+                                    ✖ Tolak
+                                  </button>
+                                </>
+                              )}
+                              <button onClick={() => handleDownloadBukti(item)} style={styles.btnAction}>
+                                📥 Struk
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -432,7 +427,7 @@ function App() {
           </div>
 
           {user.role === "admin" && (
-            <div style={{ ...styles.panelCard, marginTop: "28px" }} className="card-3d-appear panel-hover-3d">
+            <div style={{ ...styles.panelCard, marginTop: "20px" }} className="card-3d-appear panel-hover-3d">
               <h3 style={styles.panelTitle}>👥 Kelola Anggota Organisasi</h3>
 
               <form onSubmit={handleTambahAnggota} style={styles.crudForm}>
@@ -465,7 +460,7 @@ function App() {
                 </button>
               </form>
 
-              <div style={{ overflowX: "auto" }}>
+              <div style={{ overflowX: "auto", width: "100%" }}>
                 <table style={styles.table}>
                   <thead>
                     <tr style={styles.tableHeaderRow}>
@@ -514,15 +509,15 @@ const styles = {
     display: "grid",
     placeItems: "center",
     fontFamily: "'Inter', system-ui, sans-serif",
-    padding: "20px"
+    padding: "16px"
   },
   loginCard: {
     background: "rgba(18, 20, 29, 0.95)",
     backdropFilter: "blur(12px)",
-    padding: "40px",
-    borderRadius: "20px",
+    padding: "24px",
+    borderRadius: "16px",
     width: "100%",
-    maxWidth: "380px",
+    maxWidth: "360px",
     border: "1px solid rgba(255, 255, 255, 0.08)",
     boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)"
   },
@@ -531,58 +526,55 @@ const styles = {
     marginBottom: "16px"
   },
   logoImg: {
-    maxWidth: "180px",
-    borderRadius: "10px",
+    maxWidth: "140px",
+    borderRadius: "8px",
     marginBottom: "8px",
     boxShadow: "0 8px 20px rgba(0,0,0,0.4)"
   },
   badgeGlow: {
-    fontSize: "10px",
+    fontSize: "9px",
     fontWeight: "700",
-    letterSpacing: "2px",
+    letterSpacing: "1.5px",
     color: "#3b82f6",
     textTransform: "uppercase"
   },
   label: {
     display: "block",
-    fontSize: "12px",
+    fontSize: "11px",
     color: "#94a3b8",
-    marginBottom: "6px",
+    marginBottom: "4px",
     fontWeight: "600"
   },
   input: {
     width: "100%",
-    padding: "12px 14px",
+    padding: "10px 12px",
     background: "#0a0b0e",
     border: "1px solid #272a34",
     color: "#f8fafc",
-    borderRadius: "10px",
+    borderRadius: "8px",
     boxSizing: "border-box",
     outline: "none",
-    fontSize: "14px",
-    transition: "border 0.2s"
+    fontSize: "13px"
   },
   btnLogin: {
     width: "100%",
-    padding: "14px",
+    padding: "12px",
     background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
     color: "#fff",
     border: "none",
-    borderRadius: "10px",
+    borderRadius: "8px",
     fontWeight: "700",
     cursor: "pointer",
-    fontSize: "14px",
-    boxShadow: "0 4px 15px rgba(37, 99, 235, 0.35)",
-    transition: "transform 0.1s"
+    fontSize: "13px"
   },
   errorBox: {
     background: "#2d1215",
     border: "1px solid #7f1d1d",
     color: "#fca5a5",
-    padding: "10px 14px",
-    borderRadius: "10px",
-    fontSize: "12px",
-    marginBottom: "20px"
+    padding: "8px 12px",
+    borderRadius: "8px",
+    fontSize: "11px",
+    marginBottom: "16px"
   },
   dashboardContainer: {
     background: "#0d0e12",
@@ -593,150 +585,153 @@ const styles = {
   navbar: {
     background: "#12141d",
     borderBottom: "1px solid #1f2430",
-    padding: "16px 32px",
+    padding: "12px 16px",
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center"
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "10px"
   },
   userInfoBadge: {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
+    gap: "6px",
     background: "#1a1d28",
-    padding: "6px 14px",
-    borderRadius: "20px",
+    padding: "4px 10px",
+    borderRadius: "16px",
     border: "1px solid #272a34"
   },
   roleAdmin: {
     background: "#3b82f6",
     color: "#fff",
-    padding: "2px 8px",
-    borderRadius: "12px",
-    fontSize: "10px",
+    padding: "2px 6px",
+    borderRadius: "10px",
+    fontSize: "9px",
     fontWeight: "800"
   },
   roleMember: {
     background: "#10b981",
     color: "#fff",
-    padding: "2px 8px",
-    borderRadius: "12px",
-    fontSize: "10px",
+    padding: "2px 6px",
+    borderRadius: "10px",
+    fontSize: "9px",
     fontWeight: "800"
   },
   btnLogout: {
     background: "#dc2626",
     color: "#fff",
     border: "none",
-    padding: "8px 16px",
-    borderRadius: "8px",
-    fontSize: "12px",
+    padding: "6px 12px",
+    borderRadius: "6px",
+    fontSize: "11px",
     fontWeight: "600",
     cursor: "pointer"
   },
   mainContent: {
     maxWidth: "1150px",
-    margin: "32px auto",
-    padding: "0 20px"
+    margin: "16px auto",
+    padding: "0 12px"
   },
   summaryCard: {
     background: "linear-gradient(135deg, #161925 0%, #11131c 100%)",
     border: "1px solid #232736",
-    borderRadius: "20px",
-    padding: "32px",
-    marginBottom: "32px",
+    borderRadius: "16px",
+    padding: "20px",
+    marginBottom: "20px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.4)"
+    boxShadow: "0 8px 24px rgba(0,0,0,0.4)"
   },
   summaryLabel: {
-    fontSize: "12px",
+    fontSize: "11px",
     color: "#94a3b8",
     textTransform: "uppercase",
-    letterSpacing: "1px",
+    letterSpacing: "0.5px",
     fontWeight: "600"
   },
   summaryAmount: {
-    margin: "8px 0 0 0",
-    fontSize: "38px",
+    margin: "6px 0 0 0",
+    fontSize: "26px",
     color: "#10b981",
     fontWeight: "800"
   },
-  statusBox: {
-    background: "rgba(16, 185, 129, 0.1)",
-    border: "1px solid rgba(16, 185, 129, 0.2)",
-    padding: "10px 20px",
-    borderRadius: "30px"
+  gridContainer: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: "16px"
   },
   panelCard: {
     background: "#12141d",
     border: "1px solid #1f2430",
-    borderRadius: "20px",
-    padding: "28px",
-    boxShadow: "0 8px 24px rgba(0,0,0,0.3)"
+    borderRadius: "16px",
+    padding: "16px",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.3)"
   },
   panelTitle: {
-    margin: "0 0 20px 0",
-    fontSize: "16px",
+    margin: "0 0 14px 0",
+    fontSize: "14px",
     color: "#f8fafc",
     fontWeight: "700"
   },
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    fontSize: "13px",
+    fontSize: "12px",
     textAlign: "left"
   },
   tableHeaderRow: {
     borderBottom: "1px solid #1f2430"
   },
   th: {
-    padding: "12px 10px",
+    padding: "8px 6px",
     color: "#64748b",
-    fontSize: "11px",
+    fontSize: "10px",
     fontWeight: "700",
-    letterSpacing: "0.5px"
+    whiteSpace: "nowrap"
   },
   tableRow: {
     borderBottom: "1px solid #161822"
   },
-  td: { padding: "14px 10px" },
-  tdMuted: { padding: "14px 10px", color: "#94a3b8" },
-  tdWhite: { padding: "14px 10px", color: "#f8fafc", fontWeight: "600" },
-  tdGreen: { padding: "14px 10px", color: "#10b981", fontWeight: "700" },
-  emptyTd: { padding: "30px", textAlign: "center", color: "#64748b" },
+  td: { padding: "10px 6px" },
+  tdMuted: { padding: "10px 6px", color: "#94a3b8", fontSize: "11px", whiteSpace: "nowrap" },
+  tdWhite: { padding: "10px 6px", color: "#f8fafc", fontWeight: "600" },
+  tdGreen: { padding: "10px 6px", color: "#10b981", fontWeight: "700", whiteSpace: "nowrap" },
+  emptyTd: { padding: "20px", textAlign: "center", color: "#64748b", fontSize: "12px" },
   btnAction: {
     background: "#2563eb",
     color: "#fff",
     border: "none",
-    padding: "7px 14px",
-    borderRadius: "8px",
-    fontSize: "12px",
+    padding: "5px 10px",
+    borderRadius: "6px",
+    fontSize: "10px",
     fontWeight: "600",
-    cursor: "pointer"
+    cursor: "pointer",
+    whiteSpace: "nowrap"
   },
   crudForm: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "12px",
-    marginBottom: "24px"
+    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+    gap: "10px",
+    marginBottom: "16px"
   },
   btnAddMember: {
     background: "#10b981",
     color: "#fff",
     border: "none",
-    padding: "12px",
-    borderRadius: "10px",
+    padding: "10px",
+    borderRadius: "8px",
     fontWeight: "700",
+    fontSize: "12px",
     cursor: "pointer"
   },
   btnDelete: {
     background: "#dc2626",
     color: "#fff",
     border: "none",
-    padding: "6px 12px",
+    padding: "5px 10px",
     borderRadius: "6px",
-    fontSize: "12px",
+    fontSize: "10px",
     fontWeight: "600",
     cursor: "pointer"
   }
