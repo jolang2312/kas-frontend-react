@@ -29,10 +29,18 @@ function App() {
   const [newPassword, setNewPassword] = useState("");
   const [profileMsg, setProfileMsg] = useState("");
 
+  // CRUD Tambah Anggota Baru (Khusus Admin)
+  const [addName, setAddName] = useState("");
+  const [addEmail, setAddEmail] = useState("");
+  const [addPass, setAddPass] = useState("");
+  const [addRole, setAddRole] = useState("anggota");
+
   // Edit Credential Anggota Oleh Admin
   const [editingUserId, setEditingUserId] = useState(null);
   const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const [editPass, setEditPass] = useState("");
+  const [editRole, setEditRole] = useState("anggota");
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -111,6 +119,7 @@ function App() {
     }
   }, [user]);
 
+  // Update profil pribadi (Username & Password)
   const handleUpdateProfilePribadi = async (e) => {
     e.preventDefault();
     setProfileMsg("");
@@ -143,9 +152,40 @@ function App() {
     }
   };
 
+  // CREATE: Tambah Anggota Baru Oleh Admin
+  const handleTambahAnggota = async (e) => {
+    e.preventDefault();
+    try {
+      const { error } = await supabase.from("users").insert([
+        {
+          name: addName.trim(),
+          email: addEmail.trim().toLowerCase(),
+          password: addPass.trim(),
+          role: addRole,
+        },
+      ]);
+
+      if (error) throw error;
+
+      alert(`Pengguna ${addName} berhasil ditambahkan sebagai ${addRole.toUpperCase()}!`);
+      setAddName("");
+      setAddEmail("");
+      setAddPass("");
+      setAddRole("anggota");
+      fetchAnggota();
+    } catch (err) {
+      alert("Gagal menambahkan pengguna: " + err.message);
+    }
+  };
+
+  // UPDATE: Simpan Perubahan Anggota Oleh Admin
   const handleSaveEditAnggota = async (userId) => {
     try {
-      const payload = { name: editName };
+      const payload = {
+        name: editName.trim(),
+        email: editEmail.trim().toLowerCase(),
+        role: editRole,
+      };
       if (editPass.trim() !== "") payload.password = editPass.trim();
 
       const { error } = await supabase
@@ -155,11 +195,26 @@ function App() {
 
       if (error) throw error;
 
-      alert("Data anggota berhasil diperbarui.");
+      alert("Data pengguna berhasil diperbarui!");
       setEditingUserId(null);
       fetchAnggota();
     } catch (err) {
-      alert("Gagal memperbarui data anggota: " + err.message);
+      alert("Gagal memperbarui data pengguna: " + err.message);
+    }
+  };
+
+  // DELETE: Hapus Anggota Oleh Admin
+  const handleHapusAnggota = async (userId, userName) => {
+    if (window.confirm(`Yakin ingin menghapus pengguna "${userName}" dari sistem?`)) {
+      try {
+        const { error } = await supabase.from("users").delete().eq("id", userId);
+        if (error) throw error;
+
+        alert(`Pengguna "${userName}" berhasil dihapus.`);
+        fetchAnggota();
+      } catch (err) {
+        alert("Gagal menghapus pengguna: " + err.message);
+      }
     }
   };
 
@@ -307,7 +362,7 @@ function App() {
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <img src={logoImg} alt="Logo" style={{ height: "24px", borderRadius: "4px" }} />
             <span style={{ fontWeight: "700", fontSize: "13px", color: "#f4f4f5", letterSpacing: "0.5px" }}>
-              SOUTHERN BASE {isAdmin ? "• MASTER CONTROL" : "• MEMBER PORTAL"}
+              SOUTHERN BASE {isAdmin ? "• MASTER CONTROL DONT SYSTEM" : "• MEMBER PORTAL"}
             </span>
           </div>
 
@@ -323,18 +378,18 @@ function App() {
         </header>
 
         <main style={{ maxWidth: "1100px", margin: "24px auto", padding: "0 16px" }}>
-          {/* HERO GRID TOTAL KAS & PENGATURAN */}
+          {/* HERO STATISTIK */}
           <div style={styles.heroGrid}>
             <div style={{ ...styles.card, borderLeft: isAdmin ? "4px solid #3b82f6" : "4px solid #22c55e" }}>
               <span style={styles.cardHeaderLabel}>
-                {isAdmin ? "TOTAL KAS ORGANISASI (VERIFIKASI)" : "KAS TERBAYAR SAYA"}
+                {isAdmin ? "TOTAL KAS ORGANISASI (TERVERIFIKASI)" : "KAS TERBAYAR SAYA"}
               </span>
               <h1 style={{ fontSize: "30px", color: "#22c55e", margin: "6px 0", fontWeight: "800" }}>
                 Rp {totalVerified.toLocaleString("id-ID")}
               </h1>
               <p style={{ fontSize: "11px", color: "#71717a", margin: 0 }}>
                 {isAdmin
-                  ? "Verifikasi & akumulasi saldo seluruh kas anggota"
+                  ? `Total ${anggotaList.length} pengguna terdaftar di sistem master`
                   : "Akumulasi saldo kas resmi terverifikasi atas nama Anda"}
               </p>
             </div>
@@ -365,16 +420,14 @@ function App() {
             </div>
           </div>
 
-          {/* === TAMPILAN KHUSUS ANGGOTA (TERISOLASI) === */}
+          {/* === TAMPILAN KHUSUS ANGGOTA === */}
           {!isAdmin && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px", marginTop: "16px" }}>
-              {/* FORM INPUT ANGGOTA */}
               <div style={styles.card}>
                 <h3 style={styles.cardTitle}>Input Pembayaran Kas</h3>
                 <InputForm onSuccess={fetchTransaksi} />
               </div>
 
-              {/* RIWAYAT TRANSAKSI KHUSUS DIRI SENDIRI */}
               <div style={styles.card}>
                 <h3 style={styles.cardTitle}>Riwayat Transaksi Saya</h3>
                 <div style={{ overflowX: "auto" }}>
@@ -419,52 +472,198 @@ function App() {
             </div>
           )}
 
-          {/* === TAMPILAN KHUSUS ADMIN (MASTER CONTROL) === */}
+          {/* === TAMPILAN KHUSUS ADMIN MASTER === */}
           {isAdmin && (
             <>
-              {/* REKAP PER ANGGOTA & FORM INPUT */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px", marginTop: "16px" }}>
-                <div style={styles.card}>
-                  <h3 style={styles.cardTitle}>Akumulasi Pembayaran Per Anggota</h3>
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={styles.table}>
-                      <thead>
-                        <tr>
-                          <th style={styles.th}>NAMA ANGGOTA</th>
-                          <th style={{ ...styles.th, textAlign: "right" }}>TOTAL TERKUMPUL</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Object.keys(rekapPerPembayar).length === 0 ? (
-                          <tr>
-                            <td colSpan="2" style={styles.tdEmpty}>Belum ada data pembayaran terverifikasi.</td>
-                          </tr>
-                        ) : (
-                          Object.entries(rekapPerPembayar).map(([nama, totalAmount], idx) => (
-                            <tr key={idx} style={styles.tr}>
-                              <td style={styles.tdWhite}>{nama}</td>
-                              <td style={{ ...styles.tdGreen, textAlign: "right" }}>
-                                Rp {totalAmount.toLocaleString("id-ID")}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+              {/* MASTER CRUD ANGGOTA ORGANISASI */}
+              <div style={{ ...styles.card, marginTop: "16px", border: "1px solid #1e3a8a" }}>
+                <h3 style={styles.cardTitle}>👥 Master Data Anggota Organisasi (CRUD)</h3>
 
-                <div style={styles.card}>
-                  <h3 style={styles.cardTitle}>Input Pembayaran Kas (Admin)</h3>
-                  <InputForm onSuccess={fetchTransaksi} />
+                {/* FORM CREATE ANGGOTA BARU */}
+                <form onSubmit={handleTambahAnggota} style={{ marginBottom: "16px", background: "#09090b", padding: "12px", borderRadius: "8px", border: "1px solid #27272a" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "700", color: "#3b82f6", display: "block", marginBottom: "8px" }}>
+                    + Tambah Pengguna Baru
+                  </span>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "8px" }}>
+                    <input
+                      type="text"
+                      placeholder="Nama Lengkap"
+                      value={addName}
+                      onChange={(e) => setAddName(e.target.value)}
+                      required
+                      style={styles.inputSm}
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email Login"
+                      value={addEmail}
+                      onChange={(e) => setAddEmail(e.target.value)}
+                      required
+                      style={styles.inputSm}
+                    />
+                    <input
+                      type="password"
+                      placeholder="Password"
+                      value={addPass}
+                      onChange={(e) => setAddPass(e.target.value)}
+                      required
+                      style={styles.inputSm}
+                    />
+                    <select
+                      value={addRole}
+                      onChange={(e) => setAddRole(e.target.value)}
+                      style={{ ...styles.inputSm, background: "#18181b" }}
+                    >
+                      <option value="anggota">Anggota</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    <button type="submit" style={{ ...styles.btnSaveSm, marginTop: 0 }}>
+                      + Tambah User
+                    </button>
+                  </div>
+                </form>
+
+                {/* TABEL READ, UPDATE, DELETE ANGGOTA */}
+                <div style={{ overflowX: "auto" }}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>ID</th>
+                        <th style={styles.th}>NAMA LENGKAP</th>
+                        <th style={styles.th}>EMAIL</th>
+                        <th style={styles.th}>KATA SANDI</th>
+                        <th style={styles.th}>ROLE</th>
+                        <th style={{ ...styles.th, textAlign: "right" }}>AKSI MASTER</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {anggotaList.map((m) => (
+                        <tr key={m.id} style={styles.tr}>
+                          <td style={styles.tdMuted}>#{m.id}</td>
+                          <td style={styles.tdWhite}>
+                            {editingUserId === m.id ? (
+                              <input
+                                type="text"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                style={styles.inputSm}
+                              />
+                            ) : (
+                              m.name
+                            )}
+                          </td>
+                          <td style={styles.tdMuted}>
+                            {editingUserId === m.id ? (
+                              <input
+                                type="email"
+                                value={editEmail}
+                                onChange={(e) => setEditEmail(e.target.value)}
+                                style={styles.inputSm}
+                              />
+                            ) : (
+                              m.email
+                            )}
+                          </td>
+                          <td style={styles.tdWhite}>
+                            {editingUserId === m.id ? (
+                              <input
+                                type="text"
+                                placeholder="Sandi Baru"
+                                value={editPass}
+                                onChange={(e) => setEditPass(e.target.value)}
+                                style={styles.inputSm}
+                              />
+                            ) : (
+                              <span style={{ fontFamily: "monospace" }}>{m.password}</span>
+                            )}
+                          </td>
+                          <td style={styles.td}>
+                            {editingUserId === m.id ? (
+                              <select
+                                value={editRole}
+                                onChange={(e) => setEditRole(e.target.value)}
+                                style={styles.inputSm}
+                              >
+                                <option value="anggota">anggota</option>
+                                <option value="admin">admin</option>
+                              </select>
+                            ) : (
+                              <span style={m.role === "admin" ? styles.badgeAdmin : styles.badgeMember}>
+                                {m.role ? m.role.toUpperCase() : "ANGGOTA"}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ ...styles.td, textAlign: "right" }}>
+                            {editingUserId === m.id ? (
+                              <button onClick={() => handleSaveEditAnggota(m.id)} style={styles.btnSaveSm}>
+                                Simpan
+                              </button>
+                            ) : (
+                              <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                                <button
+                                  onClick={() => {
+                                    setEditingUserId(m.id);
+                                    setEditName(m.name);
+                                    setEditEmail(m.email);
+                                    setEditPass(m.password);
+                                    setEditRole(m.role || "anggota");
+                                  }}
+                                  style={styles.btnEdit}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleHapusAnggota(m.id, m.name)}
+                                  style={styles.btnReject}
+                                >
+                                  Hapus
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              {/* FILTER & PERSETUJUAN TRANSAKSI ANGGOTA */}
-              <div style={{ ...styles.card, marginTop: "16px", border: "1px solid #1e3a8a" }}>
+              {/* REKAP KAS PER ANGGOTA */}
+              <div style={{ ...styles.card, marginTop: "16px" }}>
+                <h3 style={styles.cardTitle}>📊 Akumulasi Pembayaran Per Anggota</h3>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>NAMA ANGGOTA</th>
+                        <th style={{ ...styles.th, textAlign: "right" }}>TOTAL TERKUMPUL</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.keys(rekapPerPembayar).length === 0 ? (
+                        <tr>
+                          <td colSpan="2" style={styles.tdEmpty}>Belum ada data pembayaran terverifikasi.</td>
+                        </tr>
+                      ) : (
+                        Object.entries(rekapPerPembayar).map(([nama, totalAmount], idx) => (
+                          <tr key={idx} style={styles.tr}>
+                            <td style={styles.tdWhite}>{nama}</td>
+                            <td style={{ ...styles.tdGreen, textAlign: "right" }}>
+                              Rp {totalAmount.toLocaleString("id-ID")}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* FILTER & VERIFIKASI TRANSAKSI ANGGOTA */}
+              <div style={{ ...styles.card, marginTop: "16px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
                   <h3 style={{ ...styles.cardTitle, margin: 0 }}>
-                    Filter & Verifikasi Transaksi Anggota
+                    Audit & Verifikasi Transaksi Masuk
                   </h3>
                   <button
                     type="button"
@@ -508,7 +707,7 @@ function App() {
                         <th style={styles.th}>PEMBAYAR</th>
                         <th style={styles.th}>NOMINAL</th>
                         <th style={styles.th}>STATUS</th>
-                        <th style={{ ...styles.th, textAlign: "right" }}>AKSI ADMIN</th>
+                        <th style={{ ...styles.th, textAlign: "right" }}>AKSI VERIFIKASI</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -551,75 +750,6 @@ function App() {
                           </tr>
                         ))
                       )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* MANAJEMEN KREDENSIAL ANGGOTA */}
-              <div style={{ ...styles.card, marginTop: "16px" }}>
-                <h3 style={styles.cardTitle}>Manajemen Kredensial Anggota</h3>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={styles.table}>
-                    <thead>
-                      <tr>
-                        <th style={styles.th}>ID</th>
-                        <th style={styles.th}>NAMA LENGKAP</th>
-                        <th style={styles.th}>EMAIL</th>
-                        <th style={styles.th}>KATA SANDI</th>
-                        <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {anggotaList.map((m) => (
-                        <tr key={m.id} style={styles.tr}>
-                          <td style={styles.tdMuted}>#{m.id}</td>
-                          <td style={styles.tdWhite}>
-                            {editingUserId === m.id ? (
-                              <input
-                                type="text"
-                                value={editName}
-                                onChange={(e) => setEditName(e.target.value)}
-                                style={styles.inputSm}
-                              />
-                            ) : (
-                              m.name
-                            )}
-                          </td>
-                          <td style={styles.tdMuted}>{m.email}</td>
-                          <td style={styles.tdWhite}>
-                            {editingUserId === m.id ? (
-                              <input
-                                type="text"
-                                placeholder="Sandi Baru"
-                                value={editPass}
-                                onChange={(e) => setEditPass(e.target.value)}
-                                style={styles.inputSm}
-                              />
-                            ) : (
-                              <span style={{ fontFamily: "monospace" }}>{m.password}</span>
-                            )}
-                          </td>
-                          <td style={{ ...styles.td, textAlign: "right" }}>
-                            {editingUserId === m.id ? (
-                              <button onClick={() => handleSaveEditAnggota(m.id)} style={styles.btnSaveSm}>
-                                Simpan
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  setEditingUserId(m.id);
-                                  setEditName(m.name);
-                                  setEditPass(m.password);
-                                }}
-                                style={styles.btnEdit}
-                              >
-                                Edit
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
                     </tbody>
                   </table>
                 </div>
