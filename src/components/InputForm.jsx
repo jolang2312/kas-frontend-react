@@ -3,7 +3,7 @@ import { supabase } from "../supabaseClient";
 import qrisImg from "../assets/qris.jpeg";
 
 function InputForm({ onSuccess }) {
-  const [nominal, setNominal] = useState(25000);
+  const [nominal, setNominal] = useState(20000);
   const [keterangan, setKeterangan] = useState("");
   const [buktiFile, setBuktiFile] = useState(null);
   const [step, setStep] = useState(1);
@@ -78,7 +78,7 @@ function InputForm({ onSuccess }) {
       );
 
       setKeterangan("");
-      setNominal(25000);
+      setNominal(20000);
       setBuktiFile(null);
       setStep(1);
 
@@ -174,7 +174,7 @@ function InputForm({ onSuccess }) {
 
       {step === 1 ? (
         <>
-          <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px" }}>
+          <p style={{ fontSize: "13px", color: "#a1a1aa", marginBottom: "16px" }}>
             Scan QR Code DANA atau gunakan Nomor DANA di bawah untuk melakukan transfer.
           </p>
 
@@ -182,13 +182,12 @@ function InputForm({ onSuccess }) {
             style={{
               textAlign: "center",
               marginBottom: "20px",
-              background: "#ffffff",
+              background: "#18181b",
+              border: "1px solid #27272a",
               padding: "16px",
-              borderRadius: "16px",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+              borderRadius: "12px",
             }}
           >
-            {/* JIKA GAMBAR TERSEDIA */}
             {!imgError ? (
               <div
                 onClick={() => setShowZoom(true)}
@@ -223,33 +222,31 @@ function InputForm({ onSuccess }) {
                 </span>
               </div>
             ) : (
-              /* FALLBACK JIKA GAMBAR RUSAK/TIDAK ADA */
               <div
                 style={{
                   padding: "20px",
-                  background: "#f8fafc",
+                  background: "#09090b",
                   borderRadius: "12px",
-                  border: "2px dashed #cbd5e1",
+                  border: "1px dashed #27272a",
                 }}
               >
                 <div style={{ fontSize: "32px", marginBottom: "8px" }}>📲</div>
-                <div style={{ fontSize: "13px", fontWeight: "700", color: "#0f172a" }}>
+                <div style={{ fontSize: "13px", fontWeight: "700", color: "#f4f4f5" }}>
                   Pembayaran Via DANA
                 </div>
               </div>
             )}
 
-            {/* KETERANGAN DANA & TOMBOL COPY */}
             <div
               style={{
                 marginTop: "14px",
                 paddingTop: "12px",
-                borderTop: "1px dashed #e2e8f0",
-                color: "#0f172a",
+                borderTop: "1px dashed #27272a",
+                color: "#f4f4f5",
                 textAlign: "center",
               }}
             >
-              <p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#0086e6", fontWeight: "bold" }}>
+              <p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#3b82f6", fontWeight: "bold" }}>
                 ● Transfer DANA a.n. {namaPemilik}
               </p>
               <div
@@ -257,7 +254,8 @@ function InputForm({ onSuccess }) {
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "8px",
-                  background: "#f1f5f9",
+                  background: "#09090b",
+                  border: "1px solid #27272a",
                   padding: "6px 12px",
                   borderRadius: "8px",
                   marginTop: "6px",
@@ -267,7 +265,7 @@ function InputForm({ onSuccess }) {
                   style={{
                     fontWeight: "700",
                     fontSize: "15px",
-                    color: "#0f172a",
+                    color: "#f4f4f5",
                     fontFamily: "monospace",
                   }}
                 >
@@ -277,7 +275,7 @@ function InputForm({ onSuccess }) {
                   type="button"
                   onClick={handleCopyNomor}
                   style={{
-                    background: copied ? "#10b981" : "#2563eb",
+                    background: copied ? "#16a34a" : "#2563eb",
                     color: "#fff",
                     border: "none",
                     padding: "4px 10px",
@@ -296,11 +294,11 @@ function InputForm({ onSuccess }) {
           {errorMsg && (
             <div
               style={{
-                background: "#2d1215",
+                background: "#270f11",
                 border: "1px solid #7f1d1d",
                 color: "#fca5a5",
                 padding: "10px 14px",
-                borderRadius: "10px",
+                borderRadius: "8px",
                 fontSize: "12px",
                 marginBottom: "16px",
               }}
@@ -309,17 +307,18 @@ function InputForm({ onSuccess }) {
             </div>
           )}
 
+          {/* OPSI NOMINAL CEPAT: 20.000, 25.000, 50.000, 100.000 */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
-            {[10000, 25000, 50000, 100000].map((val) => (
+            {[20000, 25000, 50000, 100000].map((val) => (
               <button
                 key={val}
                 type="button"
                 onClick={() => setNominal(val)}
                 style={{
                   padding: "10px",
-                  background: nominal === val ? "#2563eb" : "#1a1d28",
+                  background: Number(nominal) === val ? "#2563eb" : "#18181b",
                   color: "#fff",
-                  border: nominal === val ? "1px solid #3b82f6" : "1px solid #272a34",
+                  border: Number(nominal) === val ? "1px solid #3b82f6" : "1px solid #27272a",
                   borderRadius: "8px",
                   fontWeight: "600",
                   fontSize: "13px",
@@ -333,7 +332,7 @@ function InputForm({ onSuccess }) {
 
           <form onSubmit={handleLanjutKonfirmasi}>
             <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "12px", color: "#94a3b8", marginBottom: "6px" }}>
+              <label style={{ display: "block", fontSize: "11px", color: "#a1a1aa", marginBottom: "6px", fontWeight: "600" }}>
                 Nominal Kustom (Rp)
               </label>
               <input
@@ -344,18 +343,19 @@ function InputForm({ onSuccess }) {
                 style={{
                   width: "100%",
                   padding: "10px 12px",
-                  background: "#0a0b0e",
-                  border: "1px solid #272a34",
-                  color: "#fff",
+                  background: "#18181b",
+                  border: "1px solid #27272a",
+                  color: "#f4f4f5",
                   borderRadius: "8px",
                   boxSizing: "border-box",
                   outline: "none",
+                  fontSize: "13px"
                 }}
               />
             </div>
 
             <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "12px", color: "#94a3b8", marginBottom: "6px" }}>
+              <label style={{ display: "block", fontSize: "11px", color: "#a1a1aa", marginBottom: "6px", fontWeight: "600" }}>
                 Nama Pembayar / Keterangan
               </label>
               <input
@@ -367,18 +367,19 @@ function InputForm({ onSuccess }) {
                 style={{
                   width: "100%",
                   padding: "10px 12px",
-                  background: "#0a0b0e",
-                  border: "1px solid #272a34",
-                  color: "#fff",
+                  background: "#18181b",
+                  border: "1px solid #27272a",
+                  color: "#f4f4f5",
                   borderRadius: "8px",
                   boxSizing: "border-box",
                   outline: "none",
+                  fontSize: "13px"
                 }}
               />
             </div>
 
             <div style={{ marginBottom: "20px" }}>
-              <label style={{ display: "block", fontSize: "12px", color: "#94a3b8", marginBottom: "6px" }}>
+              <label style={{ display: "block", fontSize: "11px", color: "#a1a1aa", marginBottom: "6px", fontWeight: "600" }}>
                 Unggah Bukti Transfer (Screenshot)
               </label>
               <input
@@ -389,9 +390,9 @@ function InputForm({ onSuccess }) {
                 style={{
                   width: "100%",
                   padding: "8px",
-                  background: "#0a0b0e",
-                  border: "1px solid #272a34",
-                  color: "#94a3b8",
+                  background: "#18181b",
+                  border: "1px solid #27272a",
+                  color: "#a1a1aa",
                   borderRadius: "8px",
                   fontSize: "12px",
                 }}
@@ -403,13 +404,13 @@ function InputForm({ onSuccess }) {
               style={{
                 width: "100%",
                 padding: "12px",
-                background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                background: "#2563eb",
                 color: "#fff",
                 border: "none",
-                borderRadius: "10px",
+                borderRadius: "8px",
                 fontWeight: "700",
                 cursor: "pointer",
-                fontSize: "14px",
+                fontSize: "13px",
               }}
             >
               Lanjut ke Konfirmasi Pembayaran →
@@ -417,30 +418,30 @@ function InputForm({ onSuccess }) {
           </form>
         </>
       ) : (
-        <div style={{ background: "#1a1d28", padding: "20px", borderRadius: "12px", border: "1px solid #3b82f6" }}>
-          <h4 style={{ color: "#fff", marginTop: "0", marginBottom: "14px" }}>🔍 Periksa Sebelum Mengirim</h4>
+        <div style={{ background: "#18181b", padding: "18px", borderRadius: "10px", border: "1px solid #27272a" }}>
+          <h4 style={{ color: "#f4f4f5", marginTop: "0", marginBottom: "12px", fontSize: "14px" }}>🔍 Periksa Sebelum Mengirim</h4>
 
-          <div style={{ fontSize: "13px", color: "#cbd5e1", marginBottom: "10px" }}>
-            <b>Nama Pembayar:</b> {keterangan}
+          <div style={{ fontSize: "12px", color: "#a1a1aa", marginBottom: "8px" }}>
+            <b style={{ color: "#f4f4f5" }}>Nama Pembayar:</b> {keterangan}
           </div>
-          <div style={{ fontSize: "13px", color: "#cbd5e1", marginBottom: "10px" }}>
-            <b>Nominal Kas:</b> Rp {parseInt(nominal).toLocaleString("id-ID")}
+          <div style={{ fontSize: "12px", color: "#a1a1aa", marginBottom: "8px" }}>
+            <b style={{ color: "#f4f4f5" }}>Nominal Kas:</b> Rp {parseInt(nominal || 0).toLocaleString("id-ID")}
           </div>
-          <div style={{ fontSize: "13px", color: "#cbd5e1", marginBottom: "16px" }}>
-            <b>Bukti File:</b> {buktiFile ? buktiFile.name : "-"}
+          <div style={{ fontSize: "12px", color: "#a1a1aa", marginBottom: "14px" }}>
+            <b style={{ color: "#f4f4f5" }}>Bukti File:</b> {buktiFile ? buktiFile.name : "-"}
           </div>
 
           <div
             style={{
-              background: "rgba(59, 130, 246, 0.1)",
+              background: "rgba(37, 99, 235, 0.12)",
               padding: "10px",
-              borderRadius: "8px",
-              fontSize: "12px",
+              borderRadius: "6px",
+              fontSize: "11px",
               color: "#93c5fd",
-              marginBottom: "20px",
+              marginBottom: "16px",
             }}
           >
-            Data akan terkirim dengan status <b>Pending</b>. Admin akan mengecek saldo DANA masuk terlebih dahulu sebelum menyetujui.
+            Data akan terkirim dengan status <b>Pending</b>. Admin akan mengecek saldo masuk sebelum menyetujui.
           </div>
 
           <div style={{ display: "flex", gap: "10px" }}>
@@ -450,11 +451,12 @@ function InputForm({ onSuccess }) {
               style={{
                 flex: 1,
                 padding: "10px",
-                background: "#334155",
-                color: "#fff",
+                background: "#27272a",
+                color: "#f4f4f5",
                 border: "none",
                 borderRadius: "8px",
                 fontWeight: "600",
+                fontSize: "12px",
                 cursor: "pointer",
               }}
             >
@@ -467,11 +469,12 @@ function InputForm({ onSuccess }) {
               style={{
                 flex: 1,
                 padding: "10px",
-                background: "#10b981",
+                background: "#16a34a",
                 color: "#fff",
                 border: "none",
                 borderRadius: "8px",
                 fontWeight: "700",
+                fontSize: "12px",
                 cursor: "pointer",
               }}
             >
