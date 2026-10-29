@@ -499,8 +499,8 @@ function App() {
         <div style={{ position: "relative", zIndex: 1 }}>
           <Background3D role={user.role} />
 
-          {/* NAVBAR HEADER DENGAN TOMBOL LOGOUT UNTUK ANGGOTA DAN ADMIN */}
-          <header style={styles.navbar}>
+          {/* NAVBAR HEADER (DIJAMIN TAMPIL PALING ATAS UNTUK SEMUA ROLE) */}
+          <header style={styles.navbar} className="no-print">
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <img src={logoImg} alt="Logo" style={{ height: "24px", borderRadius: "4px" }} />
               <span style={styles.navTitle}>
@@ -1040,7 +1040,7 @@ const styles = {
   userBadge: { display: "flex", alignItems: "center", gap: "8px", background: "#09090b", padding: "4px 8px", borderRadius: "6px", border: "1px solid #27272a" },
   badgeAdmin: { background: "#2563eb", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: "700" },
   badgeMember: { background: "#16a34a", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: "700" },
-  btnLogout: { background: "#dc2626", color: "#fff", border: "none", padding: "5px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "500", cursor: "pointer" },
+  btnLogout: { background: "#dc2626", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "600", cursor: "pointer" },
   heroGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" },
   card: { background: "#18181b", border: "1px solid #27272a", borderRadius: "10px", padding: "16px" },
   cardHeaderLabel: { fontSize: "11px", fontWeight: "600", color: "#71717a" },
