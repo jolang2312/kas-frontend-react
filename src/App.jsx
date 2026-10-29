@@ -22,7 +22,6 @@ function App() {
   const [emailAnggota, setEmailAnggota] = useState("");
   const [passAnggota, setPassAnggota] = useState("");
 
-  // FUNGSI LOGIN VIA SUPABASE DIRECT
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
@@ -66,8 +65,7 @@ function App() {
     setAnggotaList([]);
   };
 
-  // FETCH TRANSAKSI LANGSUNG DARI SUPABASE
-  // (Total kas hanya menjumlahkan transaksi dengan status 'settlement' / 'lunas')
+  // FETCH TRANSAKSI (Hitung total hanya yang statusnya 'settlement' / 'lunas')
   const fetchTransaksi = async () => {
     try {
       const { data, error } = await supabase
@@ -81,7 +79,7 @@ function App() {
       setTransaksi(dataTransaksi);
       
       const sum = dataTransaksi
-        .filter((item) => item.status === "settlement" || item.status === "lunas" || !item.status)
+        .filter((item) => item.status === "settlement" || item.status === "lunas")
         .reduce(
           (acc, curr) => acc + parseInt(curr.amount || curr.jumlah || 0),
           0
@@ -92,7 +90,7 @@ function App() {
     }
   };
 
-  // FUNGSI VERIFIKASI ADMIN: Menyetujui transaksi pending agar dana masuk total kas
+  // VERIFIKASI ADMIN: Menyetujui transaksi pending agar masuk ke Total Kas
   const handleVerifikasi = async (id) => {
     try {
       const { error } = await supabase
@@ -102,14 +100,13 @@ function App() {
 
       if (error) throw error;
 
-      alert("Transaksi berhasil disetujui dan dana resmi masuk!");
+      alert("Transaksi berhasil disetujui! Uang resmi tercatat di Total Kas.");
       fetchTransaksi();
     } catch (err) {
       alert("Gagal memverifikasi transaksi: " + err.message);
     }
   };
 
-  // FETCH ANGGOTA LANGSUNG DARI SUPABASE
   const fetchAnggota = async () => {
     try {
       const { data, error } = await supabase
@@ -133,7 +130,6 @@ function App() {
     }
   }, [user]);
 
-  // TAMBAH ANGGOTA (CRUD ADMIN)
   const handleTambahAnggota = async (e) => {
     e.preventDefault();
     try {
@@ -160,7 +156,6 @@ function App() {
     }
   };
 
-  // HAPUS ANGGOTA (CRUD ADMIN)
   const handleHapusAnggota = async (id) => {
     if (window.confirm("Yakin ingin menghapus anggota ini?")) {
       try {
@@ -235,9 +230,6 @@ function App() {
     printWindow.document.close();
   };
 
-  // ----------------------------------------------------
-  // TAMPILAN 1: FORM LOGIN
-  // ----------------------------------------------------
   if (!user) {
     return (
       <div style={styles.loginContainer}>
@@ -291,9 +283,6 @@ function App() {
     );
   }
 
-  // ----------------------------------------------------
-  // TAMPILAN 2: DASHBOARD UTAMA
-  // ----------------------------------------------------
   return (
     <div style={styles.dashboardContainer}>
       <header style={styles.navbar}>
@@ -321,7 +310,7 @@ function App() {
       <main style={styles.mainContent}>
         <div style={styles.summaryCard}>
           <div>
-            <span style={styles.summaryLabel}>Total Kas Terkumpul</span>
+            <span style={styles.summaryLabel}>Total Kas Terkumpul (Terverifikasi)</span>
             <h1 style={styles.summaryAmount}>
               Rp {total.toLocaleString("id-ID")}
             </h1>
@@ -356,7 +345,7 @@ function App() {
                     <th style={styles.th}>TANGGAL</th>
                     <th style={styles.th}>KETERANGAN</th>
                     <th style={styles.th}>NOMINAL</th>
-                    <th style={styles.th}>ORDER ID</th>
+                    <th style={styles.th}>STATUS</th>
                     <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
                   </tr>
                 </thead>
@@ -378,15 +367,21 @@ function App() {
                           +Rp {parseInt(item.amount || item.jumlah || 0).toLocaleString("id-ID")}
                         </td>
                         <td style={styles.td}>
-                          <span style={styles.orderBadge}>
-                            {item.order_id || (item.status === "pending" ? "PENDING" : "TRX-VERIFIED")}
-                          </span>
+                          {item.status === "settlement" || item.status === "lunas" ? (
+                            <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700" }}>
+                              ● Disetujui
+                            </span>
+                          ) : (
+                            <span style={{ background: "rgba(234, 179, 8, 0.15)", color: "#eab308", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700" }}>
+                              ⏳ Pending
+                            </span>
+                          )}
                         </td>
-                        <td style={{ ...styles.td, textAlign: "right" }}>
-                          {user.role === "admin" && item.status === "pending" && (
+                        <td style={{ ...styles.td, textAlign: "right", display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                          {user.role === "admin" && (item.status === "pending" || !item.status) && (
                             <button
                               onClick={() => handleVerifikasi(item.id)}
-                              style={{ ...styles.btnAddMember, padding: "6px 12px", fontSize: "11px", marginRight: "8px" }}
+                              style={{ background: "#10b981", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
                             >
                               ✔ Setujui
                             </button>
@@ -568,8 +563,7 @@ const styles = {
     padding: "16px 32px",
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
-    sticky: "top"
+    alignItems: "center"
   },
   userInfoBadge: {
     display: "flex",
