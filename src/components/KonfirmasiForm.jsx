@@ -32,30 +32,17 @@ function KonfirmasiForm({ onSuccess }) {
       const orderId = "TRX-DANA-" + Date.now();
       const valNominal = parseInt(nominal);
 
-      // Hanya kirim order_id, keterangan/description, dan amount
-      let { error } = await supabase
+      // Kirim kolom payer_name (serta keterangan & amount) agar lolos not-null constraint
+      const { error } = await supabase
         .from("transactions")
         .insert([
           {
             order_id: orderId,
+            payer_name: keterangan,
             keterangan: keterangan,
             amount: valNominal
           }
         ]);
-
-      // Fallback jika nama kolom di Supabase dinamai 'description'
-      if (error && error.message.includes("keterangan")) {
-        const retry = await supabase
-          .from("transactions")
-          .insert([
-            {
-              order_id: orderId,
-              description: keterangan,
-              amount: valNominal
-            }
-          ]);
-        error = retry.error;
-      }
 
       if (error) throw error;
 
