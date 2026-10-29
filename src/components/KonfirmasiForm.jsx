@@ -31,7 +31,7 @@ function KonfirmasiForm({ onSuccess }) {
     try {
       const valNominal = parseInt(nominal);
 
-      // Menyimpan langsung ke tabel transactions di Supabase
+      // Menyertakan transaction_date agar tidak melanggar not-null constraint
       const { error } = await supabase
         .from("transactions")
         .insert([
@@ -39,7 +39,8 @@ function KonfirmasiForm({ onSuccess }) {
             payer_name: keterangan,
             amount: valNominal,
             payment_method: "DANA QR",
-            transaction_type: "income"
+            transaction_type: "income",
+            transaction_date: new Date().toISOString()
           }
         ]);
 
