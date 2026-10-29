@@ -27,8 +27,10 @@ function InputForm({ onSuccess }) {
     e.preventDefault();
     setErrorMsg("");
 
-    if (!nominal || nominal <= 0) {
-      setErrorMsg("Nominal pembayaran harus lebih dari 0.");
+    const numericAmount = parseInt(nominal) || 0;
+
+    if (numericAmount <= 0) {
+      setErrorMsg("Nominal pembayaran harus berupa angka dan lebih dari 0.");
       return;
     }
 
@@ -52,17 +54,19 @@ function InputForm({ onSuccess }) {
     try {
       const savedUser = JSON.parse(localStorage.getItem("user")) || {};
       const officerName = savedUser.name || "Anggota Organisasi";
+      const numericAmount = parseInt(nominal) || 0;
 
-      const now = new Date();
-      const formattedDate = now.toISOString().replace("T", " ").substring(0, 19);
+      if (numericAmount <= 0) {
+        throw new Error("Nominal tidak valid.");
+      }
 
       const { error } = await supabase.from("transactions").insert([
         {
           payer_name: keterangan,
-          amount: parseInt(nominal),
+          amount: numericAmount,
           payment_method: "DANA",
           transaction_type: "income",
-          transaction_date: formattedDate,
+          transaction_date: new Date().toISOString(),
           officer_name: officerName,
           status: "pending",
           description: `Bukti: ${buktiFile ? buktiFile.name : "-"}`,
@@ -72,9 +76,9 @@ function InputForm({ onSuccess }) {
       if (error) throw error;
 
       alert(
-        `Konfirmasi terkirim! Pembayaran dari ${keterangan} sebesar Rp ${parseInt(
-          nominal
-        ).toLocaleString("id-ID")} berhasil dikirim. Menunggu verifikasi admin.`
+        `Konfirmasi terkirim! Pembayaran dari ${keterangan} sebesar Rp ${numericAmount.toLocaleString(
+          "id-ID"
+        )} berhasil dikirim. Menunggu verifikasi admin.`
       );
 
       setKeterangan("");
@@ -85,7 +89,7 @@ function InputForm({ onSuccess }) {
       if (onSuccess) onSuccess();
     } catch (err) {
       console.error("Gagal menyimpan transaksi:", err);
-      setErrorMsg(err.message || "Gagal mencatat transaksi.");
+      setErrorMsg(err.message || "Gagal mengirim data ke database Supabase.");
     } finally {
       setLoading(false);
     }
@@ -307,7 +311,6 @@ function InputForm({ onSuccess }) {
             </div>
           )}
 
-          {/* OPSI NOMINAL CEPAT: 20.000, 25.000, 50.000, 100.000 */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
             {[20000, 25000, 50000, 100000].map((val) => (
               <button
@@ -349,7 +352,7 @@ function InputForm({ onSuccess }) {
                   borderRadius: "8px",
                   boxSizing: "border-box",
                   outline: "none",
-                  fontSize: "13px"
+                  fontSize: "13px",
                 }}
               />
             </div>
@@ -373,7 +376,7 @@ function InputForm({ onSuccess }) {
                   borderRadius: "8px",
                   boxSizing: "border-box",
                   outline: "none",
-                  fontSize: "13px"
+                  fontSize: "13px",
                 }}
               />
             </div>
@@ -421,6 +424,23 @@ function InputForm({ onSuccess }) {
         <div style={{ background: "#18181b", padding: "18px", borderRadius: "10px", border: "1px solid #27272a" }}>
           <h4 style={{ color: "#f4f4f5", marginTop: "0", marginBottom: "12px", fontSize: "14px" }}>🔍 Periksa Sebelum Mengirim</h4>
 
+          {/* MENAMPILKAN PESAN ERROR DI STEP 2 */}
+          {errorMsg && (
+            <div
+              style={{
+                background: "#270f11",
+                border: "1px solid #7f1d1d",
+                color: "#fca5a5",
+                padding: "10px 14px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                marginBottom: "14px",
+              }}
+            >
+              ⚠️ {errorMsg}
+            </div>
+          )}
+
           <div style={{ fontSize: "12px", color: "#a1a1aa", marginBottom: "8px" }}>
             <b style={{ color: "#f4f4f5" }}>Nama Pembayar:</b> {keterangan}
           </div>
@@ -447,7 +467,10 @@ function InputForm({ onSuccess }) {
           <div style={{ display: "flex", gap: "10px" }}>
             <button
               type="button"
-              onClick={() => setStep(1)}
+              onClick={() => {
+                setErrorMsg("");
+                setStep(1);
+              }}
               style={{
                 flex: 1,
                 padding: "10px",
@@ -475,7 +498,8 @@ function InputForm({ onSuccess }) {
                 borderRadius: "8px",
                 fontWeight: "700",
                 fontSize: "12px",
-                cursor: "pointer",
+                cursor: loading ? "wait" : "pointer",
+                opacity: loading ? 0.7 : 1,
               }}
             >
               {loading ? "Mengirim..." : "Kirim Sekarang ✓"}
