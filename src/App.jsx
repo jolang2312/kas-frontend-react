@@ -247,18 +247,16 @@ function App() {
     printWindow.document.close();
   };
 
-  // HALAMAN LOGIN DENGAN ANIMASI 3D THREE.JS
   if (!user) {
     return (
       <div style={styles.loginContainer}>
-        <div style={styles.loginCard}>
+        <div style={styles.loginCard} className="card-3d-appear">
           <div style={styles.logoWrapper}>
             <img src={logoImg} alt="Southern Base" style={styles.logoImg} />
             <div style={styles.badgeGlow}>SOUTHERN BASE PORTAL</div>
           </div>
 
-          {/* OBJ 3D TERPASANG DI HALAMAN LOGIN */}
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
             <Card3D />
           </div>
 
@@ -331,7 +329,7 @@ function App() {
       </header>
 
       <main style={styles.mainContent}>
-        <div style={styles.summaryCard}>
+        <div style={styles.summaryCard} className="card-3d-appear panel-hover-3d">
           <div>
             <span style={styles.summaryLabel}>Total Kas Terkumpul (Terverifikasi)</span>
             <h1 style={styles.summaryAmount}>
@@ -354,13 +352,13 @@ function App() {
           gap: "24px"
         }}>
           {user.role === "anggota" && (
-            <div style={styles.panelCard}>
+            <div style={styles.panelCard} className="card-3d-appear panel-hover-3d">
               <h3 style={styles.panelTitle}>💳 Input Pemasukan / Kas</h3>
               <InputForm onSuccess={fetchTransaksi} />
             </div>
           )}
 
-          <div style={styles.panelCard}>
+          <div style={styles.panelCard} className="card-3d-appear panel-hover-3d">
             <h3 style={styles.panelTitle}>
               📊 Riwayat Kas Masuk {user.role === "admin" && "& Verifikasi Struk"}
             </h3>
@@ -434,7 +432,7 @@ function App() {
         </div>
 
         {user.role === "admin" && (
-          <div style={{ ...styles.panelCard, marginTop: "28px" }}>
+          <div style={{ ...styles.panelCard, marginTop: "28px" }} className="card-3d-appear panel-hover-3d">
             <h3 style={styles.panelTitle}>👥 Kelola Anggota Organisasi</h3>
 
             <form onSubmit={handleTambahAnggota} style={styles.crudForm}>

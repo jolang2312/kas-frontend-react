@@ -9,3 +9,29 @@ body {
   margin: 0;
   padding: 0;
 }
+
+/* Animasi Pop-Up 3D Masuk Form & Cards */
+@keyframes pop3d {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.92) rotateX(-10deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0deg);
+  }
+}
+
+.card-3d-appear {
+  animation: pop3d 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  perspective: 1000px;
+}
+
+.panel-hover-3d {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.panel-hover-3d:hover {
+  transform: translateY(-5px) rotateX(2deg);
+  box-shadow: 0 20px 40px rgba(37, 99, 235, 0.2);
+}
