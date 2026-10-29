@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { supabase } from "../supabaseClient";
 import qrisImg from "../assets/qris.jpeg";
 
-function PemasukanForm({ onSuccess }) {
+// Ubah nama fungsi dari PemasukanForm menjadi KasForm
+function KasForm({ onSuccess }) {
   const [nominal, setNominal] = useState(25000);
   const [keterangan, setKeterangan] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,6 @@ function PemasukanForm({ onSuccess }) {
     try {
       const orderId = "TRX-DANA-" + Date.now();
 
-      // Simpan transaksi langsung ke tabel 'transactions' Supabase
       const { error } = await supabase
         .from("transactions")
         .insert([
@@ -50,7 +50,6 @@ function PemasukanForm({ onSuccess }) {
       setKeterangan("");
       setNominal(25000);
 
-      // Trigger pembaruan total kas dan tabel riwayat di Dashboard
       if (onSuccess) onSuccess();
 
     } catch (err) {
@@ -67,7 +66,6 @@ function PemasukanForm({ onSuccess }) {
         Scan QR Code di bawah menggunakan aplikasi DANA, lalu isi form konfirmasi.
       </p>
 
-      {/* Kartu QR Code DANA */}
       <div style={{
         textAlign: "center",
         marginBottom: "20px",
@@ -100,7 +98,6 @@ function PemasukanForm({ onSuccess }) {
         </div>
       )}
 
-      {/* Pilihan Nominal Cepat */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
         {[10000, 25000, 50000, 100000].map((val) => (
           <button
@@ -191,4 +188,5 @@ function PemasukanForm({ onSuccess }) {
   );
 }
 
-export default PemasukanForm;
+// Sesuaikan export default
+export default KasForm;

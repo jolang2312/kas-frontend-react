@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import PemasukanForm from "./components/PemasukanForm";
-import { supabase } from "./supabaseClient"; // Menggunakan Supabase Direct SDK
+import KasForm from "./components/KasForm";
+import { supabase } from "./supabaseClient";
 import logoImg from "./assets/logo.jpeg"; 
 
 function App() {
@@ -22,7 +22,6 @@ function App() {
   const [emailAnggota, setEmailAnggota] = useState("");
   const [passAnggota, setPassAnggota] = useState("");
 
-  // FUNGSI LOGIN VIA SUPABASE DIRECT (SOLUSI BEBAS ERROR 404)
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
@@ -32,24 +31,19 @@ function App() {
       const cleanEmail = email.trim().toLowerCase();
       const cleanPassword = password.trim();
 
-      // Query array biasa tanpa .single() agar tidak memicu error 404
       const { data, error } = await supabase
         .from("users")
         .select("*")
         .eq("email", cleanEmail)
         .eq("password", cleanPassword);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (!data || data.length === 0) {
         throw new Error("Email atau password tidak terdaftar / salah!");
       }
 
       const userData = data[0];
-
-      // Simpan user ke localStorage & State
       localStorage.setItem("user", JSON.stringify(userData));
       setUser(userData);
     } catch (error) {
@@ -71,11 +65,10 @@ function App() {
     setAnggotaList([]);
   };
 
-  // FETCH TRANSAKSI LANGSUNG DARI TABEL TRANSACTIONS
   const fetchTransaksi = async () => {
     try {
       const { data, error } = await supabase
-        .from("transactions") // Disesuaikan dengan tabel 'transactions' di Supabase
+        .from("transactions")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -90,7 +83,6 @@ function App() {
     }
   };
 
-  // FETCH ANGGOTA LANGSUNG DARI SUPABASE
   const fetchAnggota = async () => {
     try {
       const { data, error } = await supabase
@@ -114,7 +106,6 @@ function App() {
     }
   }, [user]);
 
-  // TAMBAH ANGGOTA (CRUD ADMIN)
   const handleTambahAnggota = async (e) => {
     e.preventDefault();
     try {
@@ -141,7 +132,6 @@ function App() {
     }
   };
 
-  // HAPUS ANGGOTA (CRUD ADMIN)
   const handleHapusAnggota = async (id) => {
     if (window.confirm("Yakin ingin menghapus anggota ini?")) {
       try {
@@ -164,7 +154,7 @@ function App() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Bukti Transaksi - ${item.order_id || 'TRX-MIDTRANS'}</title>
+          <title>Bukti Transaksi - ${item.order_id || 'TRX-DANA'}</title>
           <style>
             body { font-family: 'Inter', system-ui, sans-serif; background: #0b0c10; color: #333; padding: 40px; }
             .card { background: #ffffff; border-radius: 16px; max-width: 480px; margin: 0 auto; padding: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border-top: 6px solid #2563eb; }
@@ -185,11 +175,11 @@ function App() {
           <div class="card">
             <div class="header">
               <div class="logo">SOUTHERN BASE</div>
-              <div class="subtitle">Struk Pembayaran Resmi (Midtrans Gateway)</div>
+              <div class="subtitle">Struk Pembayaran Resmi</div>
             </div>
             <div class="item-row">
               <span class="label">Order ID</span>
-              <span class="value" style="font-family: monospace;">${item.order_id || 'TRX-MIDTRANS'}</span>
+              <span class="value" style="font-family: monospace;">${item.order_id || 'TRX-DANA'}</span>
             </div>
             <div class="item-row">
               <span class="label">Tanggal Transaksi</span>
@@ -201,7 +191,7 @@ function App() {
             </div>
             <div class="item-row">
               <span class="label">Status</span>
-              <span class="status-badge">● LUNAS (SETTLEMENT)</span>
+              <span class="status-badge">● LUNAS</span>
             </div>
             <div class="total-box">
               <span class="label" style="font-weight:600; color:#334155;">TOTAL BAYAR</span>
@@ -216,9 +206,6 @@ function App() {
     printWindow.document.close();
   };
 
-  // ----------------------------------------------------
-  // TAMPILAN 1: FORM LOGIN
-  // ----------------------------------------------------
   if (!user) {
     return (
       <div style={styles.loginContainer}>
@@ -272,9 +259,6 @@ function App() {
     );
   }
 
-  // ----------------------------------------------------
-  // TAMPILAN 2: DASHBOARD UTAMA
-  // ----------------------------------------------------
   return (
     <div style={styles.dashboardContainer}>
       <header style={styles.navbar}>
@@ -322,7 +306,7 @@ function App() {
           {user.role === "anggota" && (
             <div style={styles.panelCard}>
               <h3 style={styles.panelTitle}>💳 Input Pemasukan / Kas</h3>
-              <PemasukanForm onSuccess={fetchTransaksi} />
+              <KasForm onSuccess={fetchTransaksi} />
             </div>
           )}
 
