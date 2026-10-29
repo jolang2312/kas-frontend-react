@@ -12,7 +12,8 @@ function InputForm({ onSuccess }) {
   const [showZoom, setShowZoom] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const nomorDana = "081234567890"; // Ganti dengan nomor DANA tujuan Anda
+  // NOMOR DANA DIPERBARUI
+  const nomorDana = "087855015513"; 
 
   const handleCopyNomor = () => {
     navigator.clipboard.writeText(nomorDana);
@@ -89,7 +90,7 @@ function InputForm({ onSuccess }) {
 
   return (
     <div>
-      {/* MODAL ZOOM POPUP UNTUK POPUP TAMPILAN JELAS */}
+      {/* MODAL ZOOM POPUP */}
       {showZoom && (
         <div 
           onClick={() => setShowZoom(false)}
@@ -161,7 +162,7 @@ function InputForm({ onSuccess }) {
       {step === 1 ? (
         <>
           <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px" }}>
-            Scan QR Code DANA atau gunakan Nomor DANA di bawah untuk melalukan transfer.
+            Scan QR Code DANA atau gunakan Nomor DANA di bawah untuk melakukan transfer.
           </p>
 
           <div style={{
@@ -197,7 +198,7 @@ function InputForm({ onSuccess }) {
               </span>
             </div>
 
-            {/* KETERANGAN NOMOR DANA & TOMBOL COPY */}
+            {/* KETERANGAN NOMOR DANA BARU */}
             <div style={{
               marginTop: "14px",
               paddingTop: "12px",
@@ -217,7 +218,7 @@ function InputForm({ onSuccess }) {
                 borderRadius: "8px",
                 marginTop: "6px"
               }}>
-                <span style={{ fontWeight: "700", fontSize: "13px", color: "#0f172a", fontFamily: "monospace" }}>
+                <span style={{ fontWeight: "700", fontSize: "14px", color: "#0f172a", fontFamily: "monospace" }}>
                   {nomorDana}
                 </span>
                 <button
