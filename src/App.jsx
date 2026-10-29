@@ -22,6 +22,7 @@ function App() {
   const [emailAnggota, setEmailAnggota] = useState("");
   const [passAnggota, setPassAnggota] = useState("");
 
+  // FUNGSI LOGIN VIA SUPABASE DIRECT
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
@@ -65,6 +66,7 @@ function App() {
     setAnggotaList([]);
   };
 
+  // FETCH TRANSAKSI LANGSUNG DARI TABEL TRANSACTIONS
   const fetchTransaksi = async () => {
     try {
       const { data, error } = await supabase
@@ -83,6 +85,7 @@ function App() {
     }
   };
 
+  // FETCH ANGGOTA LANGSUNG DARI SUPABASE
   const fetchAnggota = async () => {
     try {
       const { data, error } = await supabase
@@ -106,6 +109,7 @@ function App() {
     }
   }, [user]);
 
+  // TAMBAH ANGGOTA (CRUD ADMIN)
   const handleTambahAnggota = async (e) => {
     e.preventDefault();
     try {
@@ -132,6 +136,7 @@ function App() {
     }
   };
 
+  // HAPUS ANGGOTA (CRUD ADMIN)
   const handleHapusAnggota = async (id) => {
     if (window.confirm("Yakin ingin menghapus anggota ini?")) {
       try {
@@ -206,6 +211,9 @@ function App() {
     printWindow.document.close();
   };
 
+  // ----------------------------------------------------
+  // TAMPILAN 1: FORM LOGIN
+  // ----------------------------------------------------
   if (!user) {
     return (
       <div style={styles.loginContainer}>
@@ -259,6 +267,9 @@ function App() {
     );
   }
 
+  // ----------------------------------------------------
+  // TAMPILAN 2: DASHBOARD UTAMA
+  // ----------------------------------------------------
   return (
     <div style={styles.dashboardContainer}>
       <header style={styles.navbar}>
