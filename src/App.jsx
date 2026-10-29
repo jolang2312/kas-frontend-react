@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import KasForm from "./components/KasForm.jsx";
+import KasForm from "./components/KasForm";
 import { supabase } from "./supabaseClient";
 import logoImg from "./assets/logo.jpeg"; 
 
@@ -66,7 +66,7 @@ function App() {
     setAnggotaList([]);
   };
 
-  // FETCH TRANSAKSI LANGSUNG DARI TABEL TRANSACTIONS
+  // FETCH TRANSAKSI LANGSUNG DARI TABEL TRANSACTIONS (MENDUKUNG 'amount' & 'jumlah')
   const fetchTransaksi = async () => {
     try {
       const { data, error } = await supabase
@@ -78,7 +78,12 @@ function App() {
 
       const dataTransaksi = data || [];
       setTransaksi(dataTransaksi);
-      const sum = dataTransaksi.reduce((acc, curr) => acc + parseInt(curr.jumlah || curr.amount || 0), 0);
+      
+      // Mengambil nominal dari kolom 'amount' atau fallback 'jumlah'
+      const sum = dataTransaksi.reduce(
+        (acc, curr) => acc + parseInt(curr.amount || curr.jumlah || 0),
+        0
+      );
       setTotal(sum);
     } catch (err) {
       console.error("Gagal mengambil transaksi:", err.message);
@@ -200,7 +205,7 @@ function App() {
             </div>
             <div class="total-box">
               <span class="label" style="font-weight:600; color:#334155;">TOTAL BAYAR</span>
-              <span class="total-amount">Rp ${parseInt(item.jumlah || item.amount || 0).toLocaleString("id-ID")}</span>
+              <span class="total-amount">Rp ${parseInt(item.amount || item.jumlah || 0).toLocaleString("id-ID")}</span>
             </div>
             <button class="btn-print" onclick="window.print()">📥 Unduh PDF / Cetak Struk</button>
           </div>
@@ -351,7 +356,7 @@ function App() {
                         </td>
                         <td style={styles.tdWhite}>{item.keterangan || item.description || '-'}</td>
                         <td style={styles.tdGreen}>
-                          +Rp {parseInt(item.jumlah || item.amount || 0).toLocaleString("id-ID")}
+                          +Rp {parseInt(item.amount || item.jumlah || 0).toLocaleString("id-ID")}
                         </td>
                         <td style={styles.td}>
                           <span style={styles.orderBadge}>
