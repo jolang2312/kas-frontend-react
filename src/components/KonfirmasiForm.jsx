@@ -1,24 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { supabase } from "../supabaseClient";
+import qrisImg from "../assets/qris.jpeg";
 
 function KonfirmasiForm({ onSuccess }) {
   const [nominal, setNominal] = useState(25000);
   const [keterangan, setKeterangan] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-
-  // Load Midtrans Snap Script otomatis saat komponen dibuka
-  useEffect(() => {
-    const midtransUrl = "https://app.sandbox.midtrans.com/snap/snap.js"; // Ganti ke app.midtrans.com jika mode production
-    const clientKey = "MIDTRANS_CLIENT_KEY_ANDA"; // Ganti dengan Client Key Midtrans Anda
-
-    if (!document.getElementById("midtrans-script")) {
-      const script = document.createElement("script");
-      script.id = "midtrans-script";
-      script.src = midtransUrl;
-      script.setAttribute("data-client-key", clientKey);
-      document.body.appendChild(script);
-    }
-  }, []);
 
   const handlePilihNominal = (val) => {
     setNominal(val);
@@ -28,8 +16,8 @@ function KonfirmasiForm({ onSuccess }) {
     e.preventDefault();
     setErrorMsg("");
 
-    if (!nominal || nominal < 1000) {
-      setErrorMsg("Nominal minimal adalah Rp 1.000.");
+    if (!nominal || nominal <= 0) {
+      setErrorMsg("Nominal pembayaran harus lebih dari 0.");
       return;
     }
 
@@ -41,49 +29,31 @@ function KonfirmasiForm({ onSuccess }) {
     setLoading(true);
 
     try {
-      // Panggil Backend Laravel endpoint /bayar
-      const response = await fetch("http://127.0.0.1:8000/api/bayar", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: JSON.stringify({
-          jumlah: parseInt(nominal),
-          keterangan: keterangan,
-        }),
-      });
+      const valNominal = parseInt(nominal);
 
-      const data = await response.json();
+      // Menggunakan payer_name sesuai kolom asli di Supabase
+      const { error } = await supabase
+        .from("transactions")
+        .insert([
+          {
+            payer_name: keterangan,
+            amount: valNominal,
+            payment_method: "DANA",
+            transaction_type: "income"
+          }
+        ]);
 
-      if (!response.ok) {
-        throw new Error(data.message || "Gagal membuat transaksi pembayaran.");
-      }
+      if (error) throw error;
 
-      // Munculkan Popup Midtrans Snap menggunakan snapToken dari backend
-      window.snap.pay(data.snapToken, {
-        onSuccess: function (result) {
-          alert("Pembayaran Berhasil! Terima kasih.");
-          setKeterangan("");
-          setNominal(25000);
-          if (onSuccess) onSuccess();
-        },
-        onPending: function (result) {
-          alert("Menunggu pembayaran Anda.");
-          console.log(result);
-        },
-        onError: function (result) {
-          alert("Pembayaran gagal!");
-          console.log(result);
-        },
-        onClose: function () {
-          alert("Anda menutup popup pembayaran sebelum selesai.");
-        },
-      });
+      alert("Pembayaran/Pemasukan kas berhasil dikonfirmasi dan dicatat!");
+      setKeterangan("");
+      setNominal(25000);
+
+      if (onSuccess) onSuccess();
 
     } catch (err) {
-      console.error("Error:", err);
-      setErrorMsg(err.message || "Terjadi kesalahan koneksi ke server.");
+      console.error("Gagal memproses transaksi:", err);
+      setErrorMsg(err.message || "Gagal mencatat transaksi.");
     } finally {
       setLoading(false);
     }
@@ -92,8 +62,26 @@ function KonfirmasiForm({ onSuccess }) {
   return (
     <div>
       <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px" }}>
-        Pilih nominal dan masukkan nama/keterangan, lalu klik bayar untuk membuka sistem pembayaran otomatis Midtrans.
+        Scan QR Code di bawah menggunakan aplikasi DANA, lalu isi form konfirmasi.
       </p>
+
+      <div style={{
+        textAlign: "center",
+        marginBottom: "20px",
+        background: "#ffffff",
+        padding: "16px",
+        borderRadius: "16px",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.3)"
+      }}>
+        <img 
+          src={qrisImg} 
+          alt="QR DANA Pembayaran Kas" 
+          style={{ maxWidth: "100%", height: "220px", objectFit: "contain", borderRadius: "8px" }} 
+        />
+        <p style={{ margin: "10px 0 0 0", fontSize: "11px", color: "#0086e6", fontWeight: "bold" }}>
+          ● Transfer via Aplikasi DANA (Atas Nama: SUMAIYAH)
+        </p>
+      </div>
 
       {errorMsg && (
         <div style={{
@@ -192,7 +180,7 @@ function KonfirmasiForm({ onSuccess }) {
             fontSize: "14px"
           }}
         >
-          {loading ? "Menghubungkan Midtrans..." : "Bayar Otomatis via Midtrans →"}
+          {loading ? "Memproses..." : "Konfirmasi Pembayaran Kas →"}
         </button>
       </form>
     </div>
