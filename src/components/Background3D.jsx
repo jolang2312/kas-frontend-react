@@ -1,128 +1,79 @@
 import React, { useEffect, useRef } from "react";
-import * as THREE from "three";
 
-function Background3D() {
-  const mountRef = useRef(null);
+function Background3D({ role }) {
+  const canvasRef = useRef(null);
 
   useEffect(() => {
-    const currentRef = mountRef.current;
-    if (!currentRef) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
 
-    // 1. Scene, Camera, Renderer
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      45,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      100
-    );
-    camera.position.set(0, -3.2, 5);
-    camera.lookAt(0, 0, 0);
-
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    currentRef.appendChild(renderer.domElement);
-
-    // 2. Geometri Topografi Fluida Organik
-    const geometry = new THREE.PlaneGeometry(16, 16, 52, 52);
-    const count = geometry.attributes.position.count;
-
-    // Material Minimalis Netral
-    const material = new THREE.MeshBasicMaterial({
-      color: 0x3b82f6,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.1,
-    });
-
-    const terrain = new THREE.Mesh(geometry, material);
-    terrain.rotation.x = -Math.PI * 0.35;
-    scene.add(terrain);
-
-    // Partikel Kedalaman Ambience
-    const particleCount = 50;
-    const pGeo = new THREE.BufferGeometry();
-    const pPos = new Float32Array(particleCount * 3);
-    for (let i = 0; i < particleCount * 3; i++) {
-      pPos[i] = (Math.random() - 0.5) * 12;
-    }
-    pGeo.setAttribute("position", new THREE.BufferAttribute(pPos, 3));
-    const pMat = new THREE.PointsMaterial({
-      size: 0.03,
-      color: 0x10b981,
-      transparent: true,
-      opacity: 0.2,
-    });
-    const particles = new THREE.Points(pGeo, pMat);
-    scene.add(particles);
-
-    // 3. Fisika Inersia Mouse (Lerp Easing Smooth)
-    let mouseX = 0;
-    let mouseY = 0;
-    let targetX = 0;
-    let targetY = 0;
-
-    const handleMouseMove = (e) => {
-      mouseX = (e.clientX / window.innerWidth - 0.5) * 0.6;
-      mouseY = (e.clientY / window.innerHeight - 0.5) * 0.6;
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
 
     const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
     };
-
     window.addEventListener("resize", handleResize);
 
-    // 4. Animasi Gelombang Sinus Fluida
+    const particles = Array.from({ length: 45 }).map(() => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      radius: Math.random() * 2 + 1,
+      vx: (Math.random() - 0.5) * 0.6,
+      vy: (Math.random() - 0.5) * 0.6,
+    }));
+
     let animationFrameId;
-    const clock = new THREE.Clock();
 
-    const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
-      const t = clock.getElapsedTime() * 0.5;
+    const render = () => {
+      ctx.clearRect(0, 0, width, height);
 
-      // Manipulasi Posisi Vertex Organik
-      const pos = geometry.attributes.position;
-      for (let i = 0; i < count; i++) {
-        const x = pos.getX(i);
-        const y = pos.getY(i);
-        const z = Math.sin(x * 0.7 + t) * 0.22 + Math.cos(y * 0.7 + t * 0.8) * 0.22;
-        pos.setZ(i, z);
-      }
-      pos.needsUpdate = true;
+      // Skema warna berdasarkan role
+      const particleColor = role === "admin" ? "rgba(59, 130, 246, 0.5)" : "rgba(34, 197, 94, 0.5)";
+      const lineColor = role === "admin" ? "rgba(99, 102, 241, 0.08)" : "rgba(16, 185, 129, 0.08)";
 
-      // Easing Pergerakan Mouse (Inersia Berat Fisik)
-      targetX += (mouseX - targetX) * 0.03;
-      targetY += (mouseY - targetY) * 0.03;
+      particles.forEach((p, idx) => {
+        p.x += p.vx;
+        p.y += p.vy;
 
-      terrain.rotation.z = targetX * 0.25;
-      terrain.rotation.y = targetY * 0.15;
+        if (p.x < 0 || p.x > width) p.vx *= -1;
+        if (p.y < 0 || p.y > height) p.vy *= -1;
 
-      particles.rotation.y = t * 0.03;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = particleColor;
+        ctx.fill();
 
-      renderer.render(scene, camera);
+        for (let j = idx + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = lineColor;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      });
+
+      animationFrameId = requestAnimationFrame(render);
     };
 
-    animate();
+    render();
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("resize", handleResize);
-      if (currentRef.contains(renderer.domElement)) {
-        currentRef.removeChild(renderer.domElement);
-      }
+      cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [role]);
 
   return (
-    <div
-      ref={mountRef}
+    <canvas
+      ref={canvasRef}
       style={{
         position: "fixed",
         top: 0,
@@ -131,6 +82,8 @@ function Background3D() {
         height: "100vh",
         zIndex: 0,
         pointerEvents: "none",
+        background: role === "admin" ? "#030712" : "#051c14",
+        transition: "background 0.5s ease",
       }}
     />
   );
