@@ -20,6 +20,10 @@ function App() {
   const [anggotaList, setAnggotaList] = useState([]);
   const [selectedProof, setSelectedProof] = useState(null);
 
+  // Filter Tanggal & Nama khusus Admin (Kalender Sederhana)
+  const [filterDate, setFilterDate] = useState("");
+  const [filterMemberName, setFilterMemberName] = useState("");
+
   // Form Profil Pribadi
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -205,6 +209,15 @@ function App() {
       return acc;
     }, {});
 
+  // Filtering Transaksi berdasarkan Tanggal dan Nama Anggota
+  const filteredTransaksi = transaksi.filter((item) => {
+    const matchesDate = filterDate ? item.transaction_date === filterDate : true;
+    const matchesName = filterMemberName
+      ? (item.payer_name || "").toLowerCase().includes(filterMemberName.toLowerCase())
+      : true;
+    return matchesDate && matchesName;
+  });
+
   if (!user) {
     return (
       <div style={styles.loginContainer}>
@@ -344,6 +357,7 @@ function App() {
             </div>
           </div>
 
+          {/* DUA PANEL DIBAGI: AKUMULASI KAS & FORM INPUT */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px", marginTop: "16px" }}>
             <div style={styles.card}>
               <h3 style={styles.cardTitle}>📊 Kas Per Anggota</h3>
@@ -381,10 +395,109 @@ function App() {
             </div>
           </div>
 
+          {/* FEATURE KHUSUS ADMIN: KALENDER FILTER & RIWAYAT DETIL ANGGOTA */}
+          {isAdmin && (
+            <div style={{ ...styles.card, marginTop: "16px", border: "1px solid #3b82f6" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
+                <h3 style={{ ...styles.cardTitle, margin: 0 }}>
+                  📅 Kalender & Filter Riwayat Transaksi Anggota
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterDate("");
+                    setFilterMemberName("");
+                  }}
+                  style={{ ...styles.btnEdit, background: "#374151" }}
+                >
+                  🔄 Reset Filter
+                </button>
+              </div>
+
+              {/* PANEL KALENDER & PENCARIAN ANGGOTA */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", marginBottom: "16px", background: "#09090b", padding: "12px", borderRadius: "8px", border: "1px solid #27272a" }}>
+                <div>
+                  <label style={{ ...styles.label, marginBottom: "4px" }}>Pilih Tanggal (Kalender):</label>
+                  <input
+                    type="date"
+                    value={filterDate}
+                    onChange={(e) => setFilterDate(e.target.value)}
+                    style={{ ...styles.inputSm, background: "#18181b", colorScheme: "dark" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ ...styles.label, marginBottom: "4px" }}>Cari Nama Anggota:</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Aril / Adam..."
+                    value={filterMemberName}
+                    onChange={(e) => setFilterMemberName(e.target.value)}
+                    style={{ ...styles.inputSm, background: "#18181b" }}
+                  />
+                </div>
+              </div>
+
+              {/* TABEL PERIKSA DETAIL */}
+              <div style={{ overflowX: "auto" }}>
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>TANGGAL</th>
+                      <th style={styles.th}>NAMA PEMBAYAR</th>
+                      <th style={styles.th}>NOMINAL</th>
+                      <th style={styles.th}>STATUS</th>
+                      <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTransaksi.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" style={styles.tdEmpty}>
+                          Tidak ada transaksi sesuai filter tanggal/nama yang dipilih.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredTransaksi.map((item) => (
+                        <tr key={item.id} style={styles.tr}>
+                          <td style={styles.tdMuted}>{item.transaction_date || "-"}</td>
+                          <td style={styles.tdWhite}>👤 {item.payer_name || item.keterangan || "-"}</td>
+                          <td style={styles.tdGreen}>+Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}</td>
+                          <td style={styles.td}>
+                            <span style={item.status === "settlement" || item.status === "lunas" ? styles.badgeSuccess : styles.badgePending}>
+                              {item.status === "settlement" || item.status === "lunas" ? "Disetujui" : "⏳ Pending"}
+                            </span>
+                          </td>
+                          <td style={{ ...styles.td, textAlign: "right" }}>
+                            <div style={{ display: "flex", gap: "4px", justifyContent: "flex-end" }}>
+                              {item.description && item.description.startsWith("data:image") && (
+                                <button onClick={() => setSelectedProof(item.description)} style={styles.btnProof}>
+                                  🖼️ Bukti
+                                </button>
+                              )}
+                              {(item.status === "pending" || !item.status) && (
+                                <>
+                                  <button onClick={() => handleVerifikasi(item.id)} style={styles.btnApprove}>
+                                    ✔ Setujui
+                                  </button>
+                                  <button onClick={() => handleTolak(item.id)} style={styles.btnReject}>
+                                    ✖ Tolak
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TABEL JURNAL TRANSAKSI KESELURUHANS */}
           <div style={{ ...styles.card, marginTop: "16px" }}>
-            <h3 style={styles.cardTitle}>
-              📜 Jurnal Kas / Riwayat Transaksi {isAdmin && "& Persetujuan Admin"}
-            </h3>
+            <h3 style={styles.cardTitle}>📜 Jurnal Utama Kas Masuk</h3>
             <div style={{ overflowX: "auto" }}>
               <table style={styles.table}>
                 <thead>
@@ -419,17 +532,6 @@ function App() {
                                 🖼️ Bukti
                               </button>
                             )}
-
-                            {isAdmin && (item.status === "pending" || !item.status) && (
-                              <>
-                                <button onClick={() => handleVerifikasi(item.id)} style={styles.btnApprove}>
-                                  ✔ Setujui
-                                </button>
-                                <button onClick={() => handleTolak(item.id)} style={styles.btnReject}>
-                                  ✖ Tolak
-                                </button>
-                              </>
-                            )}
                           </div>
                         </td>
                       </tr>
@@ -440,6 +542,7 @@ function App() {
             </div>
           </div>
 
+          {/* MANAJEMEN USERNAME & PASSWORD SELURUH ANGGOTA (KHUSUS ADMIN) */}
           {isAdmin && (
             <div style={{ ...styles.card, marginTop: "16px" }}>
               <h3 style={styles.cardTitle}>🔑 Manajemen Kredensial Seluruh Anggota</h3>
