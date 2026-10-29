@@ -11,9 +11,10 @@ function InputForm({ onSuccess }) {
   const [errorMsg, setErrorMsg] = useState("");
   const [showZoom, setShowZoom] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
-  // NOMOR DANA & NAMA PEMILIK DIPERBARUI
-  const nomorDana = "083153755970"; 
+  // DATA DANA & QRIS TERBARU
+  const nomorDana = "083153755970";
   const namaPemilik = "Santio Aril";
 
   const handleCopyNomor = () => {
@@ -53,34 +54,35 @@ function InputForm({ onSuccess }) {
       const officerName = savedUser.name || "Anggota Organisasi";
 
       const now = new Date();
-      const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);
+      const formattedDate = now.toISOString().replace("T", " ").substring(0, 19);
 
-      const { error } = await supabase
-        .from("transactions")
-        .insert([
-          {
-            payer_name: keterangan,
-            amount: parseInt(nominal),
-            payment_method: "DANA",
-            transaction_type: "income",
-            transaction_date: formattedDate,
-            officer_name: officerName,
-            status: "pending",
-            description: `Bukti: ${buktiFile ? buktiFile.name : '-'}`
-          }
-        ]);
+      const { error } = await supabase.from("transactions").insert([
+        {
+          payer_name: keterangan,
+          amount: parseInt(nominal),
+          payment_method: "DANA",
+          transaction_type: "income",
+          transaction_date: formattedDate,
+          officer_name: officerName,
+          status: "pending",
+          description: `Bukti: ${buktiFile ? buktiFile.name : "-"}`,
+        },
+      ]);
 
       if (error) throw error;
 
-      alert(`Konfirmasi terkirim! Pembayaran dari ${keterangan} sebesar Rp ${parseInt(nominal).toLocaleString("id-ID")} berhasil dikirim. Menunggu verifikasi admin.`);
-      
+      alert(
+        `Konfirmasi terkirim! Pembayaran dari ${keterangan} sebesar Rp ${parseInt(
+          nominal
+        ).toLocaleString("id-ID")} berhasil dikirim. Menunggu verifikasi admin.`
+      );
+
       setKeterangan("");
       setNominal(25000);
       setBuktiFile(null);
       setStep(1);
 
       if (onSuccess) onSuccess();
-
     } catch (err) {
       console.error("Gagal menyimpan transaksi:", err);
       setErrorMsg(err.message || "Gagal mencatat transaksi.");
@@ -92,8 +94,8 @@ function InputForm({ onSuccess }) {
   return (
     <div>
       {/* MODAL ZOOM POPUP */}
-      {showZoom && (
-        <div 
+      {showZoom && !imgError && (
+        <div
           onClick={() => setShowZoom(false)}
           style={{
             position: "fixed",
@@ -108,25 +110,35 @@ function InputForm({ onSuccess }) {
             alignItems: "center",
             justifyContent: "center",
             cursor: "zoom-out",
-            padding: "20px"
+            padding: "20px",
           }}
         >
-          <div style={{ position: "relative", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
-            <img 
-              src={qrisImg} 
-              alt="QRIS DANA Zoom" 
+          <div
+            style={{ position: "relative", textAlign: "center" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={qrisImg}
+              alt="QRIS DANA Zoom"
               style={{
                 maxWidth: "90vw",
                 maxHeight: "75vh",
                 borderRadius: "16px",
                 boxShadow: "0 0 25px rgba(255,255,255,0.2)",
                 background: "#fff",
-                padding: "12px"
-              }} 
+                padding: "12px",
+              }}
             />
-            <div style={{ marginTop: "16px", display: "flex", gap: "10px", justifyContent: "center" }}>
-              <a 
-                href={qrisImg} 
+            <div
+              style={{
+                marginTop: "16px",
+                display: "flex",
+                gap: "10px",
+                justifyContent: "center",
+              }}
+            >
+              <a
+                href={qrisImg}
                 download="QRIS_DANA_Santio_Aril.jpeg"
                 style={{
                   background: "#2563eb",
@@ -135,12 +147,12 @@ function InputForm({ onSuccess }) {
                   borderRadius: "8px",
                   textDecoration: "none",
                   fontWeight: "bold",
-                  fontSize: "13px"
+                  fontSize: "13px",
                 }}
               >
                 📥 Unduh QRIS
               </a>
-              <button 
+              <button
                 onClick={() => setShowZoom(false)}
                 style={{
                   background: "#dc2626",
@@ -150,7 +162,7 @@ function InputForm({ onSuccess }) {
                   borderRadius: "8px",
                   fontWeight: "bold",
                   fontSize: "13px",
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
               >
                 ✖ Tutup
@@ -166,60 +178,99 @@ function InputForm({ onSuccess }) {
             Scan QR Code DANA atau gunakan Nomor DANA di bawah untuk melakukan transfer.
           </p>
 
-          <div style={{
-            textAlign: "center",
-            marginBottom: "20px",
-            background: "#ffffff",
-            padding: "16px",
-            borderRadius: "16px",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.3)"
-          }}>
-            <div 
-              onClick={() => setShowZoom(true)}
-              style={{ cursor: "zoom-in", position: "relative", display: "inline-block" }}
-              title="Klik untuk memperbesar gambar QRIS"
-            >
-              <img 
-                src={qrisImg} 
-                alt="QR DANA Pembayaran Kas" 
-                style={{ maxWidth: "100%", height: "240px", objectFit: "contain", borderRadius: "8px" }} 
-              />
-              <span style={{
-                position: "absolute",
-                bottom: "10px",
-                right: "10px",
-                background: "rgba(0,0,0,0.75)",
-                color: "#fff",
-                padding: "4px 8px",
-                borderRadius: "6px",
-                fontSize: "10px",
-                fontWeight: "bold"
-              }}>
-                🔍 Perbesar / Zoom
-              </span>
-            </div>
+          <div
+            style={{
+              textAlign: "center",
+              marginBottom: "20px",
+              background: "#ffffff",
+              padding: "16px",
+              borderRadius: "16px",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+            }}
+          >
+            {/* JIKA GAMBAR TERSEDIA */}
+            {!imgError ? (
+              <div
+                onClick={() => setShowZoom(true)}
+                style={{ cursor: "zoom-in", position: "relative", display: "inline-block" }}
+                title="Klik untuk memperbesar gambar QRIS"
+              >
+                <img
+                  src={qrisImg}
+                  alt="QR DANA Pembayaran Kas"
+                  onError={() => setImgError(true)}
+                  style={{
+                    maxWidth: "100%",
+                    height: "220px",
+                    objectFit: "contain",
+                    borderRadius: "8px",
+                  }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    bottom: "10px",
+                    right: "10px",
+                    background: "rgba(0,0,0,0.75)",
+                    color: "#fff",
+                    padding: "4px 8px",
+                    borderRadius: "6px",
+                    fontSize: "10px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  🔍 Perbesar / Zoom
+                </span>
+              </div>
+            ) : (
+              /* FALLBACK JIKA GAMBAR RUSAK/TIDAK ADA */
+              <div
+                style={{
+                  padding: "20px",
+                  background: "#f8fafc",
+                  borderRadius: "12px",
+                  border: "2px dashed #cbd5e1",
+                }}
+              >
+                <div style={{ fontSize: "32px", marginBottom: "8px" }}>📲</div>
+                <div style={{ fontSize: "13px", fontWeight: "700", color: "#0f172a" }}>
+                  Pembayaran Via DANA
+                </div>
+              </div>
+            )}
 
-            {/* KETERANGAN NAMA DAN NOMOR DANA BARU */}
-            <div style={{
-              marginTop: "14px",
-              paddingTop: "12px",
-              borderTop: "1px dashed #e2e8f0",
-              color: "#0f172a",
-              textAlign: "center"
-            }}>
-              <p style={{ margin: "0 0 4px 0", fontSize: "11px", color: "#0086e6", fontWeight: "bold" }}>
+            {/* KETERANGAN DANA & TOMBOL COPY */}
+            <div
+              style={{
+                marginTop: "14px",
+                paddingTop: "12px",
+                borderTop: "1px dashed #e2e8f0",
+                color: "#0f172a",
+                textAlign: "center",
+              }}
+            >
+              <p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#0086e6", fontWeight: "bold" }}>
                 ● Transfer DANA a.n. {namaPemilik}
               </p>
-              <div style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                background: "#f1f5f9",
-                padding: "6px 12px",
-                borderRadius: "8px",
-                marginTop: "6px"
-              }}>
-                <span style={{ fontWeight: "700", fontSize: "14px", color: "#0f172a", fontFamily: "monospace" }}>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  background: "#f1f5f9",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  marginTop: "6px",
+                }}
+              >
+                <span
+                  style={{
+                    fontWeight: "700",
+                    fontSize: "15px",
+                    color: "#0f172a",
+                    fontFamily: "monospace",
+                  }}
+                >
                   {nomorDana}
                 </span>
                 <button
@@ -229,11 +280,11 @@ function InputForm({ onSuccess }) {
                     background: copied ? "#10b981" : "#2563eb",
                     color: "#fff",
                     border: "none",
-                    padding: "4px 8px",
+                    padding: "4px 10px",
                     borderRadius: "6px",
                     fontSize: "11px",
                     fontWeight: "600",
-                    cursor: "pointer"
+                    cursor: "pointer",
                   }}
                 >
                   {copied ? "✓ Tersalin" : "📋 Salin"}
@@ -243,15 +294,17 @@ function InputForm({ onSuccess }) {
           </div>
 
           {errorMsg && (
-            <div style={{
-              background: "#2d1215",
-              border: "1px solid #7f1d1d",
-              color: "#fca5a5",
-              padding: "10px 14px",
-              borderRadius: "10px",
-              fontSize: "12px",
-              marginBottom: "16px"
-            }}>
+            <div
+              style={{
+                background: "#2d1215",
+                border: "1px solid #7f1d1d",
+                color: "#fca5a5",
+                padding: "10px 14px",
+                borderRadius: "10px",
+                fontSize: "12px",
+                marginBottom: "16px",
+              }}
+            >
               ⚠️ {errorMsg}
             </div>
           )}
@@ -270,7 +323,7 @@ function InputForm({ onSuccess }) {
                   borderRadius: "8px",
                   fontWeight: "600",
                   fontSize: "13px",
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
               >
                 Rp {val.toLocaleString("id-ID")}
@@ -296,7 +349,7 @@ function InputForm({ onSuccess }) {
                   color: "#fff",
                   borderRadius: "8px",
                   boxSizing: "border-box",
-                  outline: "none"
+                  outline: "none",
                 }}
               />
             </div>
@@ -319,7 +372,7 @@ function InputForm({ onSuccess }) {
                   color: "#fff",
                   borderRadius: "8px",
                   boxSizing: "border-box",
-                  outline: "none"
+                  outline: "none",
                 }}
               />
             </div>
@@ -340,7 +393,7 @@ function InputForm({ onSuccess }) {
                   border: "1px solid #272a34",
                   color: "#94a3b8",
                   borderRadius: "8px",
-                  fontSize: "12px"
+                  fontSize: "12px",
                 }}
               />
             </div>
@@ -356,7 +409,7 @@ function InputForm({ onSuccess }) {
                 borderRadius: "10px",
                 fontWeight: "700",
                 cursor: "pointer",
-                fontSize: "14px"
+                fontSize: "14px",
               }}
             >
               Lanjut ke Konfirmasi Pembayaran →
@@ -366,7 +419,7 @@ function InputForm({ onSuccess }) {
       ) : (
         <div style={{ background: "#1a1d28", padding: "20px", borderRadius: "12px", border: "1px solid #3b82f6" }}>
           <h4 style={{ color: "#fff", marginTop: "0", marginBottom: "14px" }}>🔍 Periksa Sebelum Mengirim</h4>
-          
+
           <div style={{ fontSize: "13px", color: "#cbd5e1", marginBottom: "10px" }}>
             <b>Nama Pembayar:</b> {keterangan}
           </div>
@@ -377,7 +430,16 @@ function InputForm({ onSuccess }) {
             <b>Bukti File:</b> {buktiFile ? buktiFile.name : "-"}
           </div>
 
-          <div style={{ background: "rgba(59, 130, 246, 0.1)", padding: "10px", borderRadius: "8px", fontSize: "12px", color: "#93c5fd", marginBottom: "20px" }}>
+          <div
+            style={{
+              background: "rgba(59, 130, 246, 0.1)",
+              padding: "10px",
+              borderRadius: "8px",
+              fontSize: "12px",
+              color: "#93c5fd",
+              marginBottom: "20px",
+            }}
+          >
             Data akan terkirim dengan status <b>Pending</b>. Admin akan mengecek saldo DANA masuk terlebih dahulu sebelum menyetujui.
           </div>
 
@@ -393,7 +455,7 @@ function InputForm({ onSuccess }) {
                 border: "none",
                 borderRadius: "8px",
                 fontWeight: "600",
-                cursor: "pointer"
+                cursor: "pointer",
               }}
             >
               ← Kembali
@@ -410,7 +472,7 @@ function InputForm({ onSuccess }) {
                 border: "none",
                 borderRadius: "8px",
                 fontWeight: "700",
-                cursor: "pointer"
+                cursor: "pointer",
               }}
             >
               {loading ? "Mengirim..." : "Kirim Sekarang ✓"}
