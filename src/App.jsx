@@ -247,6 +247,16 @@ function App() {
     printWindow.document.close();
   };
 
+  // LOGIKA MENGHITUNG TOTAL PER NAMA PEMBAYAR
+  const rekapPerPembayar = transaksi
+    .filter((item) => item.status === "settlement" || item.status === "lunas")
+    .reduce((acc, curr) => {
+      const nama = curr.payer_name || curr.keterangan || "Anonim";
+      const nominal = parseInt(curr.amount || curr.jumlah || 0);
+      acc[nama] = (acc[nama] || 0) + nominal;
+      return acc;
+    }, {});
+
   if (!user) {
     return (
       <div style={styles.loginContainer}>
@@ -340,6 +350,39 @@ function App() {
                   ● Modus Akses: {user.role === "admin" ? "Administrator Master" : "Anggota"}
                 </span>
               </div>
+            </div>
+          </div>
+
+          {/* TABEL REKAPITULASI TOTAL PER PEMBAYAR */}
+          <div style={{ ...styles.panelCard, marginBottom: "20px" }} className="card-3d-appear panel-hover-3d">
+            <h3 style={styles.panelTitle}>💰 Rekap Akumulasi Pembayaran Per Anggota</h3>
+            <div style={{ overflowX: "auto", width: "100%" }}>
+              <table style={styles.table}>
+                <thead>
+                  <tr style={styles.tableHeaderRow}>
+                    <th style={styles.th}>NAMA PEMBAYAR</th>
+                    <th style={{ ...styles.th, textAlign: "right" }}>TOTAL TERKUMPUL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.keys(rekapPerPembayar).length === 0 ? (
+                    <tr>
+                      <td colSpan="2" style={styles.emptyTd}>
+                        Belum ada pembayaran terverifikasi.
+                      </td>
+                    </tr>
+                  ) : (
+                    Object.entries(rekapPerPembayar).map(([nama, totalAmount], idx) => (
+                      <tr key={idx} style={styles.tableRow}>
+                        <td style={styles.tdWhite}>👤 {nama}</td>
+                        <td style={{ ...styles.tdGreen, textAlign: "right" }}>
+                          Rp {totalAmount.toLocaleString("id-ID")}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
