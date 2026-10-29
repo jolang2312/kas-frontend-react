@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { supabase } from "../supabaseClient";
 import qrisImg from "../assets/qris.jpeg";
 
-function InputForm({ onSuccess }) {
+function KasEntryForm({ onSuccess }) {
   const [nominal, setNominal] = useState(25000);
   const [keterangan, setKeterangan] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,9 +31,9 @@ function InputForm({ onSuccess }) {
     try {
       const valNominal = parseInt(nominal);
       
-      // Ambil data user aktif dari localStorage untuk mengisi officer_name
+      // Ambil data user aktif dari localStorage
       const savedUser = JSON.parse(localStorage.getItem("user")) || {};
-      const officerName = savedUser.name || "Sistem / Anggota";
+      const officerName = savedUser.name || "Anggota Organisasi";
 
       const now = new Date();
       const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);
@@ -195,4 +195,4 @@ function InputForm({ onSuccess }) {
   );
 }
 
-export default InputForm;
+export default KasEntryForm;

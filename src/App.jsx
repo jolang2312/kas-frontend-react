@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import InputForm from "./components/InputForm";
+import InputForm from "./components/KasEntry";
 import { supabase } from "./supabaseClient";
 import logoImg from "./assets/logo.jpeg"; 
 
