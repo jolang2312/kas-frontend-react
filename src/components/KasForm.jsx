@@ -25,7 +25,7 @@ function KasForm({ onSuccess }) {
     }
 
     if (!buktiFile) {
-      setErrorMsg("Harap lampirkan bukti foto transfer untuk verifikasi.");
+      setErrorMsg("Harap lampirkan bukti foto transfer untuk diverifikasi admin.");
       return;
     }
 
@@ -43,6 +43,7 @@ function KasForm({ onSuccess }) {
       const now = new Date();
       const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);
 
+      // Status awal diset 'pending' agar menunggu pengecekan admin
       const { error } = await supabase
         .from("transactions")
         .insert([
@@ -52,13 +53,15 @@ function KasForm({ onSuccess }) {
             payment_method: "DANA",
             transaction_type: "income",
             transaction_date: formattedDate,
-            officer_name: officerName
+            officer_name: officerName,
+            status: "pending", 
+            description: `Bukti: ${buktiFile.name}`
           }
         ]);
 
       if (error) throw error;
 
-      alert(`Berhasil! Konfirmasi tercatat: ${keterangan} membayar kas sebesar Rp ${parseInt(nominal).toLocaleString("id-ID")}.`);
+      alert(`Konfirmasi terkirim! Pembayaran dari ${keterangan} sebesar Rp ${parseInt(nominal).toLocaleString("id-ID")} sedang menunggu verifikasi admin setelah dana masuk.`);
       
       setKeterangan("");
       setNominal(25000);
@@ -80,7 +83,7 @@ function KasForm({ onSuccess }) {
       {step === 1 ? (
         <>
           <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px" }}>
-            Scan QR Code di bawah menggunakan aplikasi DANA, lalu isi data dan unggah bukti transfer.
+            Scan QR Code DANA, lakukan transfer, lalu unggah bukti transfer untuk diverifikasi admin.
           </p>
 
           <div style={{
@@ -218,13 +221,13 @@ function KasForm({ onSuccess }) {
                 fontSize: "14px"
               }}
             >
-              Lanjut ke Konfirmasi Pembayaran →
+              Kirim Konfirmasi ke Admin →
             </button>
           </form>
         </>
       ) : (
         <div style={{ background: "#1a1d28", padding: "20px", borderRadius: "12px", border: "1px solid #3b82f6" }}>
-          <h4 style={{ color: "#fff", marginTop: "0", marginBottom: "14px" }}>🔍 Konfirmasi Data Pembayaran</h4>
+          <h4 style={{ color: "#fff", marginTop: "0", marginBottom: "14px" }}>🔍 Periksa Sebelum Mengirim</h4>
           
           <div style={{ fontSize: "13px", color: "#cbd5e1", marginBottom: "10px" }}>
             <b>Nama Pembayar:</b> {keterangan}
@@ -237,7 +240,7 @@ function KasForm({ onSuccess }) {
           </div>
 
           <div style={{ background: "rgba(59, 130, 246, 0.1)", padding: "10px", borderRadius: "8px", fontSize: "12px", color: "#93c5fd", marginBottom: "20px" }}>
-            Pastikan Anda sudah mentransfer uang ke DANA atas nama <b>SUMAIYAH</b> agar data valid dan tercatat resmi.
+            Data akan dikirim dengan status <b>Pending</b>. Admin akan memverifikasi dana masuk sebelum disetujui.
           </div>
 
           <div style={{ display: "flex", gap: "10px" }}>
@@ -255,7 +258,7 @@ function KasForm({ onSuccess }) {
                 cursor: "pointer"
               }}
             >
-              ← Kembali Ubah
+              ← Kembali
             </button>
             <button
               type="button"
@@ -272,7 +275,7 @@ function KasForm({ onSuccess }) {
                 cursor: "pointer"
               }}
             >
-              {loading ? "Menyimpan..." : "Ya, Sudah Transfer ✓"}
+              {loading ? "Mengirim..." : "Kirim Sekarang ✓"}
             </button>
           </div>
         </div>

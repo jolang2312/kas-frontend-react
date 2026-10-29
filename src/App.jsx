@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import InputForm from "./components/KasEntry";
+import InputForm from "./components/InputForm";
 import { supabase } from "./supabaseClient";
 import logoImg from "./assets/logo.jpeg"; 
 
@@ -67,6 +67,7 @@ function App() {
   };
 
   // FETCH TRANSAKSI LANGSUNG DARI SUPABASE
+  // (Total kas hanya menjumlahkan transaksi dengan status 'settlement' / 'lunas')
   const fetchTransaksi = async () => {
     try {
       const { data, error } = await supabase
@@ -79,13 +80,32 @@ function App() {
       const dataTransaksi = data || [];
       setTransaksi(dataTransaksi);
       
-      const sum = dataTransaksi.reduce(
-        (acc, curr) => acc + parseInt(curr.amount || curr.jumlah || 0),
-        0
-      );
+      const sum = dataTransaksi
+        .filter((item) => item.status === "settlement" || item.status === "lunas" || !item.status)
+        .reduce(
+          (acc, curr) => acc + parseInt(curr.amount || curr.jumlah || 0),
+          0
+        );
       setTotal(sum);
     } catch (err) {
       console.error("Gagal mengambil transaksi:", err.message);
+    }
+  };
+
+  // FUNGSI VERIFIKASI ADMIN: Menyetujui transaksi pending agar dana masuk total kas
+  const handleVerifikasi = async (id) => {
+    try {
+      const { error } = await supabase
+        .from("transactions")
+        .update({ status: "settlement" })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      alert("Transaksi berhasil disetujui dan dana resmi masuk!");
+      fetchTransaksi();
+    } catch (err) {
+      alert("Gagal memverifikasi transaksi: " + err.message);
     }
   };
 
@@ -173,7 +193,7 @@ function App() {
             .item-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
             .label { color: #64748b; }
             .value { font-weight: 600; color: #0f172a; }
-            .status-badge { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+            .status-badge { background: ${item.status === 'pending' ? '#fef9c3' : '#dcfce7'}; color: ${item.status === 'pending' ? '#854d0e' : '#166534'}; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
             .total-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 12px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
             .total-amount { font-size: 22px; font-weight: 800; color: #16a34a; }
             .btn-print { width: 100%; padding: 12px; background: #0f172a; color: #fff; border: none; border-radius: 10px; margin-top: 24px; font-size: 14px; font-weight: 600; cursor: pointer; }
@@ -200,7 +220,7 @@ function App() {
             </div>
             <div class="item-row">
               <span class="label">Status</span>
-              <span class="status-badge">● LUNAS</span>
+              <span class="status-badge">${item.status === 'pending' ? '⏳ MENUNGGU VERIFIKASI' : '● LUNAS / DISETUJUI'}</span>
             </div>
             <div class="total-box">
               <span class="label" style="font-weight:600; color:#334155;">TOTAL BAYAR</span>
@@ -359,10 +379,18 @@ function App() {
                         </td>
                         <td style={styles.td}>
                           <span style={styles.orderBadge}>
-                            {item.order_id || "TRX-VERIFIED"}
+                            {item.order_id || (item.status === "pending" ? "PENDING" : "TRX-VERIFIED")}
                           </span>
                         </td>
                         <td style={{ ...styles.td, textAlign: "right" }}>
+                          {user.role === "admin" && item.status === "pending" && (
+                            <button
+                              onClick={() => handleVerifikasi(item.id)}
+                              style={{ ...styles.btnAddMember, padding: "6px 12px", fontSize: "11px", marginRight: "8px" }}
+                            >
+                              ✔ Setujui
+                            </button>
+                          )}
                           <button onClick={() => handleDownloadBukti(item)} style={styles.btnAction}>
                             📥 Struk
                           </button>
