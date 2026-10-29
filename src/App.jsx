@@ -65,7 +65,7 @@ function App() {
     setAnggotaList([]);
   };
 
-  // FETCH TRANSAKSI (Hitung total hanya yang statusnya 'settlement' / 'lunas')
+  // FETCH TRANSAKSI (Total kas hanya menjumlahkan transaksi dengan status 'settlement' / 'lunas')
   const fetchTransaksi = async () => {
     try {
       const { data, error } = await supabase
@@ -90,7 +90,7 @@ function App() {
     }
   };
 
-  // VERIFIKASI ADMIN: Menyetujui transaksi pending agar masuk ke Total Kas
+  // VERIFIKASI ADMIN: Menyetujui transaksi pending
   const handleVerifikasi = async (id) => {
     try {
       const { error } = await supabase
@@ -104,6 +104,25 @@ function App() {
       fetchTransaksi();
     } catch (err) {
       alert("Gagal memverifikasi transaksi: " + err.message);
+    }
+  };
+
+  // TOLAK & HAPUS TRANSAKSI: Menghapus transaksi yang tidak valid
+  const handleTolak = async (id) => {
+    if (window.confirm("Yakin ingin menolak transaksi ini? Transaksi yang ditolak akan langsung dihapus dari sistem.")) {
+      try {
+        const { error } = await supabase
+          .from("transactions")
+          .delete()
+          .eq("id", id);
+
+        if (error) throw error;
+
+        alert("Transaksi ditolak dan berhasil dihapus dari sistem.");
+        fetchTransaksi();
+      } catch (err) {
+        alert("Gagal menghapus transaksi: " + err.message);
+      }
     }
   };
 
@@ -379,12 +398,20 @@ function App() {
                         </td>
                         <td style={{ ...styles.td, textAlign: "right", display: "flex", gap: "6px", justifyContent: "flex-end" }}>
                           {user.role === "admin" && (item.status === "pending" || !item.status) && (
-                            <button
-                              onClick={() => handleVerifikasi(item.id)}
-                              style={{ background: "#10b981", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
-                            >
-                              ✔ Setujui
-                            </button>
+                            <>
+                              <button
+                                onClick={() => handleVerifikasi(item.id)}
+                                style={{ background: "#10b981", color: "#fff", border: "none", padding: "6px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
+                              >
+                                ✔ Setujui
+                              </button>
+                              <button
+                                onClick={() => handleTolak(item.id)}
+                                style={{ background: "#dc2626", color: "#fff", border: "none", padding: "6px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
+                              >
+                                ✖ Tolak
+                              </button>
+                            </>
                           )}
                           <button onClick={() => handleDownloadBukti(item)} style={styles.btnAction}>
                             📥 Struk
@@ -672,15 +699,6 @@ const styles = {
   tdWhite: { padding: "14px 10px", color: "#f8fafc", fontWeight: "600" },
   tdGreen: { padding: "14px 10px", color: "#10b981", fontWeight: "700" },
   emptyTd: { padding: "30px", textAlign: "center", color: "#64748b" },
-  orderBadge: {
-    background: "#1a2234",
-    border: "1px solid #2563eb",
-    color: "#60a5fa",
-    padding: "4px 8px",
-    borderRadius: "6px",
-    fontFamily: "monospace",
-    fontSize: "11px"
-  },
   btnAction: {
     background: "#2563eb",
     color: "#fff",

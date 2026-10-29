@@ -9,6 +9,7 @@ function InputForm({ onSuccess }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showZoom, setShowZoom] = useState(false); // State untuk kontrol Zoom QRIS
 
   const handleLanjutKonfirmasi = (e) => {
     e.preventDefault();
@@ -60,7 +61,7 @@ function InputForm({ onSuccess }) {
 
       if (error) throw error;
 
-      alert(`Konfirmasi terkirim! Pembayaran dari ${keterangan} sebesar Rp ${parseInt(nominal).toLocaleString("id-ID")} berhasil dikirim. Menunggu verifikasi admin sebelum masuk total kas.`);
+      alert(`Konfirmasi terkirim! Pembayaran dari ${keterangan} sebesar Rp ${parseInt(nominal).toLocaleString("id-ID")} berhasil dikirim. Menunggu verifikasi admin.`);
       
       setKeterangan("");
       setNominal(25000);
@@ -79,6 +80,46 @@ function InputForm({ onSuccess }) {
 
   return (
     <div>
+      {/* MODAL ZOOM POPUP UNTUK MEMPERBESAR QRIS */}
+      {showZoom && (
+        <div 
+          onClick={() => setShowZoom(false)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0, 0, 0, 0.85)",
+            zIndex: 99999,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "zoom-out",
+            padding: "20px"
+          }}
+        >
+          <div style={{ position: "relative", textAlign: "center" }}>
+            <img 
+              src={qrisImg} 
+              alt="QRIS DANA Zoom" 
+              style={{
+                maxWidth: "90vw",
+                maxHeight: "80vh",
+                borderRadius: "16px",
+                boxShadow: "0 0 25px rgba(255,255,255,0.2)",
+                background: "#fff",
+                padding: "12px"
+              }} 
+            />
+            <p style={{ color: "#fff", marginTop: "14px", fontSize: "13px", fontWeight: "600" }}>
+              🔍 Klik di mana saja untuk menutup gambar
+            </p>
+          </div>
+        </div>
+      )}
+
       {step === 1 ? (
         <>
           <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px" }}>
@@ -93,11 +134,30 @@ function InputForm({ onSuccess }) {
             borderRadius: "16px",
             boxShadow: "0 4px 20px rgba(0,0,0,0.3)"
           }}>
-            <img 
-              src={qrisImg} 
-              alt="QR DANA Pembayaran Kas" 
-              style={{ maxWidth: "100%", height: "220px", objectFit: "contain", borderRadius: "8px" }} 
-            />
+            <div 
+              onClick={() => setShowZoom(true)}
+              style={{ cursor: "zoom-in", position: "relative", display: "inline-block" }}
+              title="Klik untuk memperbesar gambar QRIS"
+            >
+              <img 
+                src={qrisImg} 
+                alt="QR DANA Pembayaran Kas" 
+                style={{ maxWidth: "100%", height: "240px", objectFit: "contain", borderRadius: "8px" }} 
+              />
+              <span style={{
+                position: "absolute",
+                bottom: "10px",
+                right: "10px",
+                background: "rgba(0,0,0,0.7)",
+                color: "#fff",
+                padding: "4px 8px",
+                borderRadius: "6px",
+                fontSize: "10px",
+                fontWeight: "bold"
+              }}>
+                🔍 Klik Perbesar
+              </span>
+            </div>
             <p style={{ margin: "10px 0 0 0", fontSize: "11px", color: "#0086e6", fontWeight: "bold" }}>
               ● Transfer via Aplikasi DANA (Atas Nama: SUMAIYAH)
             </p>
