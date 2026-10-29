@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PemasukanForm from "./components/PemasukanForm";
-import API from "./api"; // Menggunakan instance API
+import { supabase } from "./supabaseClient"; // Menggunakan Supabase Direct SDK
 import logoImg from "./assets/logo.jpeg"; 
 
 function App() {
@@ -22,26 +22,30 @@ function App() {
   const [emailAnggota, setEmailAnggota] = useState("");
   const [passAnggota, setPassAnggota] = useState("");
 
-  // FUNGSI LOGIN
+  // FUNGSI LOGIN VIA SUPABASE DIRECT
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
     setLoadingLogin(true);
 
     try {
-      const response = await API.post('/login', { email, password });
-      
-      const { access_token, user: userData } = response.data;
+      // 1. Cek User & Authenticate di Supabase Auth / Query Tabel Users
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("email", email)
+        .single();
 
-      if (access_token) {
-        localStorage.setItem("token", access_token);
+      if (userError || !userData) {
+        throw new Error("Email atau password tidak terdaftar!");
       }
-      localStorage.setItem("user", JSON.stringify(userData));
 
+      // 2. Simpan user ke localStorage & State
+      localStorage.setItem("user", JSON.stringify(userData));
       setUser(userData);
     } catch (error) {
-      console.error("Detail Error:", error.response);
-      setLoginError(error.response?.data?.message || "Login gagal! Periksa email dan password.");
+      console.error("Detail Error:", error);
+      setLoginError(error.message || "Login gagal! Periksa email dan password.");
     } finally {
       setLoadingLogin(false);
     }
@@ -58,24 +62,37 @@ function App() {
     setAnggotaList([]);
   };
 
+  // FETCH TRANSAKSI LANGSUNG DARI SUPABASE
   const fetchTransaksi = async () => {
     try {
-      const res = await API.get("/pemasukan");
-      const data = res.data || [];
-      setTransaksi(data);
-      const sum = data.reduce((acc, curr) => acc + parseInt(curr.jumlah || 0), 0);
+      const { data, error } = await supabase
+        .from("pemasukan")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const dataTransaksi = data || [];
+      setTransaksi(dataTransaksi);
+      const sum = dataTransaksi.reduce((acc, curr) => acc + parseInt(curr.jumlah || 0), 0);
       setTotal(sum);
     } catch (err) {
-      console.error("Gagal mengambil transaksi:", err);
+      console.error("Gagal mengambil transaksi:", err.message);
     }
   };
 
+  // FETCH ANGGOTA LANGSUNG DARI SUPABASE
   const fetchAnggota = async () => {
     try {
-      const res = await API.get("/anggota");
-      setAnggotaList(res.data || []);
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .order("id", { ascending: true });
+
+      if (error) throw error;
+      setAnggotaList(data || []);
     } catch (err) {
-      console.error("Gagal mengambil data anggota:", err);
+      console.error("Gagal mengambil data anggota:", err.message);
     }
   };
 
@@ -88,31 +105,46 @@ function App() {
     }
   }, [user]);
 
+  // TAMBAH ANGGOTA (CRUD ADMIN)
   const handleTambahAnggota = async (e) => {
     e.preventDefault();
     try {
-      await API.post("/anggota", {
-        name: namaAnggota,
-        email: emailAnggota,
-        password: passAnggota,
-      });
+      const { error } = await supabase
+        .from("users")
+        .insert([
+          {
+            name: namaAnggota,
+            email: emailAnggota,
+            password: passAnggota,
+            role: "anggota"
+          }
+        ]);
+
+      if (error) throw error;
+
       alert("Anggota berhasil ditambahkan!");
       setNamaAnggota("");
       setEmailAnggota("");
       setPassAnggota("");
       fetchAnggota();
     } catch (err) {
-      alert(err.response?.data?.message || "Gagal menambah anggota");
+      alert("Gagal menambah anggota: " + err.message);
     }
   };
 
+  // HAPUS ANGGOTA (CRUD ADMIN)
   const handleHapusAnggota = async (id) => {
     if (window.confirm("Yakin ingin menghapus anggota ini?")) {
       try {
-        await API.delete(`/anggota/${id}`);
+        const { error } = await supabase
+          .from("users")
+          .delete()
+          .eq("id", id);
+
+        if (error) throw error;
         fetchAnggota();
       } catch (err) {
-        alert("Gagal menghapus anggota");
+        alert("Gagal menghapus anggota: " + err.message);
       }
     }
   };
@@ -176,13 +208,12 @@ function App() {
   };
 
   // ----------------------------------------------------
-  // TAMPILAN 1: FORM LOGIN (MOCKUP CARD MODERN)
+  // TAMPILAN 1: FORM LOGIN
   // ----------------------------------------------------
   if (!user) {
     return (
       <div style={styles.loginContainer}>
         <div style={styles.loginCard}>
-          {/* Header & Logo Mockup */}
           <div style={styles.logoWrapper}>
             <img src={logoImg} alt="Southern Base" style={styles.logoImg} />
             <div style={styles.badgeGlow}>SOUTHERN BASE PORTAL</div>
@@ -233,11 +264,10 @@ function App() {
   }
 
   // ----------------------------------------------------
-  // TAMPILAN 2: DASHBOARD UTAMA (ORGANIZATION MOCKUP)
+  // TAMPILAN 2: DASHBOARD UTAMA
   // ----------------------------------------------------
   return (
     <div style={styles.dashboardContainer}>
-      {/* Top Navbar Header */}
       <header style={styles.navbar}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <img src={logoImg} alt="Southern Base" style={{ height: "32px", borderRadius: "6px" }} />
@@ -260,9 +290,7 @@ function App() {
         </div>
       </header>
 
-      {/* Content Body */}
       <main style={styles.mainContent}>
-        {/* Mockup Card: Total Kas & Ringkasan */}
         <div style={styles.summaryCard}>
           <div>
             <span style={styles.summaryLabel}>Total Kas Terkumpul</span>
@@ -277,13 +305,11 @@ function App() {
           </div>
         </div>
 
-        {/* Layout Grid Dashboard */}
         <div style={{
           display: "grid",
           gridTemplateColumns: user.role === "anggota" ? "1fr 1.6fr" : "1fr",
           gap: "24px"
         }}>
-          {/* Form Pembayaran Midtrans (Anggota) */}
           {user.role === "anggota" && (
             <div style={styles.panelCard}>
               <h3 style={styles.panelTitle}>💳 Input Pemasukan / Kas</h3>
@@ -291,7 +317,6 @@ function App() {
             </div>
           )}
 
-          {/* Tabel Riwayat Transaksi */}
           <div style={styles.panelCard}>
             <h3 style={styles.panelTitle}>
               📊 Riwayat Kas Masuk {user.role === "admin" && "& Verifikasi Struk"}
@@ -343,12 +368,10 @@ function App() {
           </div>
         </div>
 
-        {/* Panel CRUD Kelola Anggota (Khusus Admin) */}
         {user.role === "admin" && (
           <div style={{ ...styles.panelCard, marginTop: "28px" }}>
             <h3 style={styles.panelTitle}>👥 Kelola Anggota Organisasi</h3>
 
-            {/* Form Tambah Anggota */}
             <form onSubmit={handleTambahAnggota} style={styles.crudForm}>
               <input
                 type="text"
@@ -379,7 +402,6 @@ function App() {
               </button>
             </form>
 
-            {/* Tabel Anggota */}
             <div style={{ overflowX: "auto" }}>
               <table style={styles.table}>
                 <thead>
@@ -421,9 +443,6 @@ function App() {
   );
 }
 
-// ----------------------------------------------------
-// STYLE SYSTEM (THEME ORGANISASI DARK MODERN)
-// ----------------------------------------------------
 const styles = {
   loginContainer: {
     background: "radial-gradient(circle at top, #1a1c26 0%, #0d0e12 100%)",

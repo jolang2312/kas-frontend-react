@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    // Ganti URL di bawah ini dengan URL backend publik kamu yang sudah di-deploy
-    baseURL: 'https://kas-backend.vercel.app/api', 
+    baseURL: 'https://kas-backend-dun.vercel.app/api',
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
