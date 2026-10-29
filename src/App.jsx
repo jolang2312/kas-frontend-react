@@ -496,27 +496,27 @@ function App() {
           </div>
         </div>
       ) : (
-        <div style={{ position: "relative", zIndex: 1 }}>
+        <div style={{ position: "relative", zIndex: 10 }}>
           <Background3D role={user.role} />
 
-          {/* NAVBAR HEADER (DIJAMIN TAMPIL PALING ATAS UNTUK SEMUA ROLE) */}
-          <header style={styles.navbar} className="no-print">
+          {/* BARIS NAVBAR HEADER TERPISAH (POSISI UTAMA) */}
+          <header style={styles.navbarSticky} className="no-print">
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <img src={logoImg} alt="Logo" style={{ height: "24px", borderRadius: "4px" }} />
+              <img src={logoImg} alt="Logo" style={{ height: "26px", borderRadius: "4px" }} />
               <span style={styles.navTitle}>
-                SOUTHERN BASE {isAdmin ? "— ADMIN" : "— ANGGOTA"}
+                SOUTHERN BASE {isAdmin ? "— MASTER CONTROL" : "— MEMBER PORTAL"}
               </span>
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <div style={styles.userBadge}>
-                <span style={{ fontSize: "12px", color: "#e4e4e7" }}>{user.name}</span>
+                <span style={{ fontSize: "12px", color: "#e4e4e7", fontWeight: "600" }}>{user.name}</span>
                 <span style={isAdmin ? styles.badgeAdmin : styles.badgeMember}>
                   {user.role ? user.role.toUpperCase() : "MEMBER"}
                 </span>
               </div>
               <button onClick={handleLogout} style={styles.btnLogout} className="btn-action">
-                Keluar
+                🚪 Keluar
               </button>
             </div>
           </header>
@@ -538,10 +538,11 @@ function App() {
                 )}
               </div>
 
+              {/* KARTU PENGATURAN KREDENSIAL DENGAN TOMBOL LOGOUT CADANGAN */}
               <div style={styles.card} className="no-print login-card-animated">
                 <span style={styles.cardHeaderLabel}>PENGATURAN KREDENSIAL</span>
                 <form onSubmit={handleUpdateProfilePribadi} style={{ marginTop: "10px" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
                     <input
                       type="text"
                       placeholder="Nama Pengguna"
@@ -560,7 +561,19 @@ function App() {
                       className="form-field"
                     />
                   </div>
-                  <button type="submit" style={styles.btnSaveSm} className="btn-action">Perbarui Akun</button>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button type="submit" style={styles.btnSaveSm} className="btn-action">
+                      Perbarui Akun
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      style={{ ...styles.btnLogout, width: "auto", whiteSpace: "nowrap" }}
+                      className="btn-action"
+                    >
+                      🚪 Keluar
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>
@@ -1035,7 +1048,18 @@ const styles = {
     fontSize: "13px",
   },
   errorBox: { background: "#271012", border: "1px solid #7f1d1d", color: "#fca5a5", padding: "8px 12px", borderRadius: "6px", fontSize: "12px", marginBottom: "12px" },
-  navbar: { padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#18181b", borderBottom: "1px solid #27272a" },
+  navbarSticky: {
+    position: "sticky",
+    top: 0,
+    zIndex: 999,
+    padding: "12px 20px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    background: "#18181b",
+    borderBottom: "1px solid #27272a",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
+  },
   navTitle: { fontWeight: "600", fontSize: "13px", color: "#f4f4f5" },
   userBadge: { display: "flex", alignItems: "center", gap: "8px", background: "#09090b", padding: "4px 8px", borderRadius: "6px", border: "1px solid #27272a" },
   badgeAdmin: { background: "#2563eb", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: "700" },
