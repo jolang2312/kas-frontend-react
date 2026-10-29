@@ -29,15 +29,16 @@ function App() {
     setLoadingLogin(true);
 
     try {
-      // 1. Cek User & Authenticate di Supabase Auth / Query Tabel Users
+      // 1. Cek User berdasarkan Email & Password
       const { data: userData, error: userError } = await supabase
         .from("users")
         .select("*")
         .eq("email", email)
+        .eq("password", password)
         .single();
 
       if (userError || !userData) {
-        throw new Error("Email atau password tidak terdaftar!");
+        throw new Error("Email atau password tidak terdaftar / salah!");
       }
 
       // 2. Simpan user ke localStorage & State
@@ -62,11 +63,11 @@ function App() {
     setAnggotaList([]);
   };
 
-  // FETCH TRANSAKSI LANGSUNG DARI SUPABASE
+  // FETCH TRANSAKSI LANGSUNG DARI TABEL TRANSACTIONS
   const fetchTransaksi = async () => {
     try {
       const { data, error } = await supabase
-        .from("pemasukan")
+        .from("transactions") // Disesuaikan dengan tabel 'transactions' di Supabase
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -74,7 +75,7 @@ function App() {
 
       const dataTransaksi = data || [];
       setTransaksi(dataTransaksi);
-      const sum = dataTransaksi.reduce((acc, curr) => acc + parseInt(curr.jumlah || 0), 0);
+      const sum = dataTransaksi.reduce((acc, curr) => acc + parseInt(curr.jumlah || curr.amount || 0), 0);
       setTotal(sum);
     } catch (err) {
       console.error("Gagal mengambil transaksi:", err.message);
@@ -155,7 +156,7 @@ function App() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Bukti Transaksi - ${item.order_id}</title>
+          <title>Bukti Transaksi - ${item.order_id || 'TRX-MIDTRANS'}</title>
           <style>
             body { font-family: 'Inter', system-ui, sans-serif; background: #0b0c10; color: #333; padding: 40px; }
             .card { background: #ffffff; border-radius: 16px; max-width: 480px; margin: 0 auto; padding: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border-top: 6px solid #2563eb; }
@@ -188,7 +189,7 @@ function App() {
             </div>
             <div class="item-row">
               <span class="label">Keterangan / Pembayar</span>
-              <span class="value">${item.keterangan}</span>
+              <span class="value">${item.keterangan || item.description || '-'}</span>
             </div>
             <div class="item-row">
               <span class="label">Status</span>
@@ -196,7 +197,7 @@ function App() {
             </div>
             <div class="total-box">
               <span class="label" style="font-weight:600; color:#334155;">TOTAL BAYAR</span>
-              <span class="total-amount">Rp ${parseInt(item.jumlah || 0).toLocaleString("id-ID")}</span>
+              <span class="total-amount">Rp ${parseInt(item.jumlah || item.amount || 0).toLocaleString("id-ID")}</span>
             </div>
             <button class="btn-print" onclick="window.print()">📥 Unduh PDF / Cetak Struk</button>
           </div>
@@ -345,9 +346,9 @@ function App() {
                         <td style={styles.tdMuted}>
                           {item.created_at ? new Date(item.created_at).toLocaleDateString("id-ID") : "-"}
                         </td>
-                        <td style={styles.tdWhite}>{item.keterangan}</td>
+                        <td style={styles.tdWhite}>{item.keterangan || item.description || '-'}</td>
                         <td style={styles.tdGreen}>
-                          +Rp {parseInt(item.jumlah || 0).toLocaleString("id-ID")}
+                          +Rp {parseInt(item.jumlah || item.amount || 0).toLocaleString("id-ID")}
                         </td>
                         <td style={styles.td}>
                           <span style={styles.orderBadge}>
