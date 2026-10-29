@@ -337,12 +337,14 @@ function App() {
 
   return (
     <div style={styles.appWrapper}>
-      {/* ATURAN CSS ANIMASI FADE-IN & TRANSISI HALUS */}
       <style>{`
-        @keyframes formAppear {
+        @keyframes loginFloatUp {
           0% {
             opacity: 0;
-            transform: translateY(16px) scale(0.97);
+            transform: translateY(24px) scale(0.96);
+          }
+          60% {
+            transform: translateY(-4px) scale(1.01);
           }
           100% {
             opacity: 1;
@@ -350,22 +352,58 @@ function App() {
           }
         }
 
-        .login-card-animated {
-          animation: formAppear 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        @keyframes logoPop {
+          0% {
+            opacity: 0;
+            transform: scale(0.6);
+          }
+          70% {
+            transform: scale(1.08);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
         }
 
-        .btn-action {
-          transition: background-color 0.15s ease, transform 0.1s ease;
+        @keyframes shakeError {
+          0%, 100% { transform: translateX(0); }
+          20%, 60% { transform: translateX(-6px); }
+          40%, 80% { transform: translateX(6px); }
         }
-        .btn-action:hover {
-          filter: brightness(1.08);
+
+        .login-card-animated {
+          animation: loginFloatUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
-        .btn-action:active {
-          transform: scale(0.98);
+
+        .logo-animated {
+          animation: logoPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s backwards;
+        }
+
+        .shake-animated {
+          animation: shakeError 0.35s ease-in-out;
+        }
+
+        .form-field {
+          transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
         }
         .form-field:focus {
           border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+          transform: translateY(-1px);
           outline: none;
+        }
+
+        .btn-action {
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-action:hover {
+          filter: brightness(1.12);
+          transform: translateY(-1.5px);
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        .btn-action:active {
+          transform: translateY(0) scale(0.98);
         }
 
         @media print {
@@ -408,12 +446,12 @@ function App() {
           <Background3D role="anggota" />
           <div style={{ ...styles.loginCard, position: "relative", zIndex: 1 }} className="login-card-animated">
             <div style={{ textAlign: "center", marginBottom: "20px" }}>
-              <img src={logoImg} alt="Logo" style={{ width: "72px", borderRadius: "10px" }} />
+              <img src={logoImg} alt="Logo" style={{ width: "72px", borderRadius: "10px" }} className="logo-animated" />
               <h2 style={styles.loginTitle}>SOUTHERN BASE</h2>
               <p style={styles.loginSub}>Sistem Informasi Kas Organisasi</p>
             </div>
 
-            {loginError && <div style={styles.errorBox}>{loginError}</div>}
+            {loginError && <div style={styles.errorBox} className="shake-animated">{loginError}</div>}
 
             <form onSubmit={handleLogin}>
               <div style={{ marginBottom: "14px" }}>
@@ -461,6 +499,7 @@ function App() {
         <div style={{ position: "relative", zIndex: 1 }}>
           <Background3D role={user.role} />
 
+          {/* NAVBAR HEADER DENGAN TOMBOL LOGOUT UNTUK ANGGOTA DAN ADMIN */}
           <header style={styles.navbar}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <img src={logoImg} alt="Logo" style={{ height: "24px", borderRadius: "4px" }} />
@@ -476,7 +515,9 @@ function App() {
                   {user.role ? user.role.toUpperCase() : "MEMBER"}
                 </span>
               </div>
-              <button onClick={handleLogout} style={styles.btnLogout} className="btn-action">Keluar</button>
+              <button onClick={handleLogout} style={styles.btnLogout} className="btn-action">
+                Keluar
+              </button>
             </div>
           </header>
 
