@@ -8,91 +8,111 @@ function Background3D() {
     const currentRef = mountRef.current;
     if (!currentRef) return;
 
+    // 1. Scene, Camera, Renderer
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
-      55,
+      45,
       window.innerWidth / window.innerHeight,
       0.1,
-      1000
+      100
     );
-    camera.position.z = 6;
+    camera.position.set(0, -3.2, 5);
+    camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     currentRef.appendChild(renderer.domElement);
 
-    const webGroup = new THREE.Group();
+    // 2. Geometri Topografi Fluida Organik
+    const geometry = new THREE.PlaneGeometry(16, 16, 52, 52);
+    const count = geometry.attributes.position.count;
 
-    // Garis Radial Tekstur Halus
-    const lineMaterial = new THREE.LineBasicMaterial({
-      color: 0x3f3f46,
-      transparent: true,
-      opacity: 0.12,
-    });
-    const numSpokes = 16;
-    for (let i = 0; i < numSpokes; i++) {
-      const angle = (i / numSpokes) * Math.PI * 2;
-      const points = [
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(Math.cos(angle) * 6, Math.sin(angle) * 6, (Math.random() - 0.5) * 0.8),
-      ];
-      const geometry = new THREE.BufferGeometry().setFromPoints(points);
-      const line = new THREE.Line(geometry, lineMaterial);
-      webGroup.add(line);
-    }
-
-    // Ring Konsentris
-    const ringMaterial = new THREE.LineBasicMaterial({
-      color: 0x27272a,
+    // Material Minimalis Netral
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x3b82f6,
+      wireframe: true,
       transparent: true,
       opacity: 0.1,
     });
-    const numRings = 6;
-    for (let r = 1; r <= numRings; r++) {
-      const radius = (r / numRings) * 5.0;
-      const ringPoints = [];
-      for (let i = 0; i <= numSpokes; i++) {
-        const angle = (i / numSpokes) * Math.PI * 2;
-        ringPoints.push(
-          new THREE.Vector3(
-            Math.cos(angle) * radius,
-            Math.sin(angle) * radius,
-            Math.sin(r + i) * 0.15
-          )
-        );
-      }
-      const ringGeo = new THREE.BufferGeometry().setFromPoints(ringPoints);
-      const ringLine = new THREE.Line(ringGeo, ringMaterial);
-      webGroup.add(ringLine);
+
+    const terrain = new THREE.Mesh(geometry, material);
+    terrain.rotation.x = -Math.PI * 0.35;
+    scene.add(terrain);
+
+    // Partikel Kedalaman Ambience
+    const particleCount = 50;
+    const pGeo = new THREE.BufferGeometry();
+    const pPos = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount * 3; i++) {
+      pPos[i] = (Math.random() - 0.5) * 12;
     }
+    pGeo.setAttribute("position", new THREE.BufferAttribute(pPos, 3));
+    const pMat = new THREE.PointsMaterial({
+      size: 0.03,
+      color: 0x10b981,
+      transparent: true,
+      opacity: 0.2,
+    });
+    const particles = new THREE.Points(pGeo, pMat);
+    scene.add(particles);
 
-    scene.add(webGroup);
+    // 3. Fisika Inersia Mouse (Lerp Easing Smooth)
+    let mouseX = 0;
+    let mouseY = 0;
+    let targetX = 0;
+    let targetY = 0;
 
-    // Animasi Lambat Netral
-    let animationFrameId;
-    let clock = new THREE.Clock();
-
-    const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
-      const elapsedTime = clock.getElapsedTime();
-
-      webGroup.rotation.y = elapsedTime * 0.02;
-      webGroup.rotation.x = Math.sin(elapsedTime * 0.01) * 0.05;
-
-      renderer.render(scene, camera);
+    const handleMouseMove = (e) => {
+      mouseX = (e.clientX / window.innerWidth - 0.5) * 0.6;
+      mouseY = (e.clientY / window.innerHeight - 0.5) * 0.6;
     };
-    animate();
+
+    window.addEventListener("mousemove", handleMouseMove);
 
     const handleResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     };
+
     window.addEventListener("resize", handleResize);
+
+    // 4. Animasi Gelombang Sinus Fluida
+    let animationFrameId;
+    const clock = new THREE.Clock();
+
+    const animate = () => {
+      animationFrameId = requestAnimationFrame(animate);
+      const t = clock.getElapsedTime() * 0.5;
+
+      // Manipulasi Posisi Vertex Organik
+      const pos = geometry.attributes.position;
+      for (let i = 0; i < count; i++) {
+        const x = pos.getX(i);
+        const y = pos.getY(i);
+        const z = Math.sin(x * 0.7 + t) * 0.22 + Math.cos(y * 0.7 + t * 0.8) * 0.22;
+        pos.setZ(i, z);
+      }
+      pos.needsUpdate = true;
+
+      // Easing Pergerakan Mouse (Inersia Berat Fisik)
+      targetX += (mouseX - targetX) * 0.03;
+      targetY += (mouseY - targetY) * 0.03;
+
+      terrain.rotation.z = targetX * 0.25;
+      terrain.rotation.y = targetY * 0.15;
+
+      particles.rotation.y = t * 0.03;
+
+      renderer.render(scene, camera);
+    };
+
+    animate();
 
     return () => {
       cancelAnimationFrame(animationFrameId);
+      window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("resize", handleResize);
       if (currentRef.contains(renderer.domElement)) {
         currentRef.removeChild(renderer.domElement);

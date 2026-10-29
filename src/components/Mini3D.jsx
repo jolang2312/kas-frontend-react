@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 
-function Mini3D({ color = 0x3b82f6 }) {
+function Mini3D({ color = 0x2563eb }) {
   const mountRef = useRef(null);
 
   useEffect(() => {
@@ -9,32 +9,38 @@ function Mini3D({ color = 0x3b82f6 }) {
     if (!currentRef) return;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-    camera.position.z = 2.5;
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    camera.position.z = 2.8;
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    renderer.setSize(36, 36);
+    renderer.setSize(28, 28);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     currentRef.appendChild(renderer.domElement);
 
-    // Geometri 3D Icosahedron
-    const geometry = new THREE.IcosahedronGeometry(0.8, 0);
+    // Geometri Cincin Metalik Elegan
+    const geometry = new THREE.TorusGeometry(0.55, 0.18, 16, 48);
     const material = new THREE.MeshStandardMaterial({
       color: color,
-      wireframe: true,
-      metalness: 0.8,
+      metalness: 0.75,
       roughness: 0.2,
+      wireframe: false,
     });
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
-    scene.add(ambientLight);
+    // Pencahayaan
+    const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    dirLight.position.set(2, 3, 4);
+    scene.add(dirLight);
+
+    const ambLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambLight);
 
     let animationFrameId;
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
-      mesh.rotation.x += 0.015;
-      mesh.rotation.y += 0.02;
+      mesh.rotation.x += 0.012;
+      mesh.rotation.y += 0.016;
       renderer.render(scene, camera);
     };
     animate();
@@ -47,7 +53,17 @@ function Mini3D({ color = 0x3b82f6 }) {
     };
   }, [color]);
 
-  return <div ref={mountRef} style={{ width: "36px", height: "36px" }} />;
+  return (
+    <div
+      ref={mountRef}
+      style={{
+        width: "28px",
+        height: "28px",
+        display: "inline-block",
+        verticalAlign: "middle",
+      }}
+    />
+  );
 }
 
 export default Mini3D;
