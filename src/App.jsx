@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import InputForm from "./components/InputForm";
-import Card3D from "./components/Card3D";
+import Background3D from "./components/Background3D";
 import { supabase } from "./supabaseClient";
 import logoImg from "./assets/logo.jpeg"; 
 
@@ -247,17 +247,16 @@ function App() {
     printWindow.document.close();
   };
 
+  // HALAMAN LOGIN WITH FULLSCREEN 3D SPIDERWEB BACKGROUND
   if (!user) {
     return (
-      <div style={styles.loginContainer}>
-        <div style={styles.loginCard} className="card-3d-appear">
+      <div style={{ ...styles.loginContainer, position: "relative" }}>
+        <Background3D />
+
+        <div style={{ ...styles.loginCard, position: "relative", zIndex: 1 }} className="card-3d-appear">
           <div style={styles.logoWrapper}>
             <img src={logoImg} alt="Southern Base" style={styles.logoImg} />
             <div style={styles.badgeGlow}>SOUTHERN BASE PORTAL</div>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
-            <Card3D />
           </div>
 
           {loginError && (
@@ -304,204 +303,206 @@ function App() {
     );
   }
 
+  // DASHBOARD MAIN WITH FULLSCREEN 3D BACKGROUND
   return (
-    <div style={styles.dashboardContainer}>
-      <header style={styles.navbar}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <img src={logoImg} alt="Southern Base" style={{ height: "32px", borderRadius: "6px" }} />
-          <span style={{ fontWeight: "700", letterSpacing: "1px", color: "#fff", fontSize: "15px" }}>
-            SOUTHERN BASE
-          </span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <div style={styles.userInfoBadge}>
-            <span style={{ fontSize: "12px", color: "#94a3b8" }}>
-              <b style={{ color: "#f8fafc" }}>{user.name}</b>
-            </span>
-            <span style={user.role === "admin" ? styles.roleAdmin : styles.roleMember}>
-              {user.role ? user.role.toUpperCase() : "MEMBER"}
+    <div style={{ ...styles.dashboardContainer, position: "relative" }}>
+      <Background3D />
+
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <header style={styles.navbar}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <img src={logoImg} alt="Southern Base" style={{ height: "32px", borderRadius: "6px" }} />
+            <span style={{ fontWeight: "700", letterSpacing: "1px", color: "#fff", fontSize: "15px" }}>
+              SOUTHERN BASE
             </span>
           </div>
-          <button onClick={handleLogout} style={styles.btnLogout}>
-            Logout
-          </button>
-        </div>
-      </header>
-
-      <main style={styles.mainContent}>
-        <div style={styles.summaryCard} className="card-3d-appear panel-hover-3d">
-          <div>
-            <span style={styles.summaryLabel}>Total Kas Terkumpul (Terverifikasi)</span>
-            <h1 style={styles.summaryAmount}>
-              Rp {total.toLocaleString("id-ID")}
-            </h1>
-            <div style={{ marginTop: "12px" }}>
-              <span style={{ color: "#10b981", fontWeight: "700", fontSize: "12px", background: "rgba(16, 185, 129, 0.1)", padding: "6px 12px", borderRadius: "20px" }}>
-                ● Modus Akses: {user.role === "admin" ? "Administrator Master" : "Anggota"}
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <div style={styles.userInfoBadge}>
+              <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                <b style={{ color: "#f8fafc" }}>{user.name}</b>
+              </span>
+              <span style={user.role === "admin" ? styles.roleAdmin : styles.roleMember}>
+                {user.role ? user.role.toUpperCase() : "MEMBER"}
               </span>
             </div>
+            <button onClick={handleLogout} style={styles.btnLogout}>
+              Logout
+            </button>
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Card3D />
-          </div>
-        </div>
+        </header>
 
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: user.role === "anggota" ? "1fr 1.6fr" : "1fr",
-          gap: "24px"
-        }}>
-          {user.role === "anggota" && (
+        <main style={styles.mainContent}>
+          <div style={styles.summaryCard} className="card-3d-appear panel-hover-3d">
+            <div>
+              <span style={styles.summaryLabel}>Total Kas Terkumpul (Terverifikasi)</span>
+              <h1 style={styles.summaryAmount}>
+                Rp {total.toLocaleString("id-ID")}
+              </h1>
+              <div style={{ marginTop: "12px" }}>
+                <span style={{ color: "#10b981", fontWeight: "700", fontSize: "12px", background: "rgba(16, 185, 129, 0.1)", padding: "6px 12px", borderRadius: "20px" }}>
+                  ● Modus Akses: {user.role === "admin" ? "Administrator Master" : "Anggota"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: user.role === "anggota" ? "1fr 1.6fr" : "1fr",
+            gap: "24px"
+          }}>
+            {user.role === "anggota" && (
+              <div style={styles.panelCard} className="card-3d-appear panel-hover-3d">
+                <h3 style={styles.panelTitle}>💳 Input Pemasukan / Kas</h3>
+                <InputForm onSuccess={fetchTransaksi} />
+              </div>
+            )}
+
             <div style={styles.panelCard} className="card-3d-appear panel-hover-3d">
-              <h3 style={styles.panelTitle}>💳 Input Pemasukan / Kas</h3>
-              <InputForm onSuccess={fetchTransaksi} />
+              <h3 style={styles.panelTitle}>
+                📊 Riwayat Kas Masuk {user.role === "admin" && "& Verifikasi Struk"}
+              </h3>
+              <div style={{ overflowX: "auto" }}>
+                <table style={styles.table}>
+                  <thead>
+                    <tr style={styles.tableHeaderRow}>
+                      <th style={styles.th}>TANGGAL</th>
+                      <th style={styles.th}>KETERANGAN</th>
+                      <th style={styles.th}>NOMINAL</th>
+                      <th style={styles.th}>STATUS</th>
+                      <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transaksi.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" style={styles.emptyTd}>
+                          Belum ada transaksi tercatat.
+                        </td>
+                      </tr>
+                    ) : (
+                      transaksi.map((item, idx) => (
+                        <tr key={idx} style={styles.tableRow}>
+                          <td style={styles.tdMuted}>
+                            {item.transaction_date ? new Date(item.transaction_date).toLocaleDateString("id-ID") : "-"}
+                          </td>
+                          <td style={styles.tdWhite}>{item.payer_name || item.keterangan || '-'}</td>
+                          <td style={styles.tdGreen}>
+                            +Rp {parseInt(item.amount || item.jumlah || 0).toLocaleString("id-ID")}
+                          </td>
+                          <td style={styles.td}>
+                            {item.status === "settlement" || item.status === "lunas" ? (
+                              <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700" }}>
+                                ● Disetujui
+                              </span>
+                            ) : (
+                              <span style={{ background: "rgba(234, 179, 8, 0.15)", color: "#eab308", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700" }}>
+                                ⏳ Pending
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ ...styles.td, textAlign: "right", display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                            {user.role === "admin" && (item.status === "pending" || !item.status) && (
+                              <>
+                                <button
+                                  onClick={() => handleVerifikasi(item.id)}
+                                  style={{ background: "#10b981", color: "#fff", border: "none", padding: "6px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
+                                >
+                                  ✔ Setujui
+                                </button>
+                                <button
+                                  onClick={() => handleTolak(item.id)}
+                                  style={{ background: "#dc2626", color: "#fff", border: "none", padding: "6px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
+                                >
+                                  ✖ Tolak
+                                </button>
+                              </>
+                            )}
+                            <button onClick={() => handleDownloadBukti(item)} style={styles.btnAction}>
+                              📥 Struk
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {user.role === "admin" && (
+            <div style={{ ...styles.panelCard, marginTop: "28px" }} className="card-3d-appear panel-hover-3d">
+              <h3 style={styles.panelTitle}>👥 Kelola Anggota Organisasi</h3>
+
+              <form onSubmit={handleTambahAnggota} style={styles.crudForm}>
+                <input
+                  type="text"
+                  placeholder="Nama Lengkap"
+                  value={namaAnggota}
+                  onChange={(e) => setNamaAnggota(e.target.value)}
+                  required
+                  style={styles.input}
+                />
+                <input
+                  type="email"
+                  placeholder="Email Anggota"
+                  value={emailAnggota}
+                  onChange={(e) => setEmailAnggota(e.target.value)}
+                  required
+                  style={styles.input}
+                />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={passAnggota}
+                  onChange={(e) => setPassAnggota(e.target.value)}
+                  required
+                  style={styles.input}
+                />
+                <button type="submit" style={styles.btnAddMember}>
+                  + Tambah Anggota
+                </button>
+              </form>
+
+              <div style={{ overflowX: "auto" }}>
+                <table style={styles.table}>
+                  <thead>
+                    <tr style={styles.tableHeaderRow}>
+                      <th style={styles.th}>ID</th>
+                      <th style={styles.th}>NAMA</th>
+                      <th style={styles.th}>EMAIL</th>
+                      <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {anggotaList.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" style={styles.emptyTd}>
+                          Belum ada data anggota.
+                        </td>
+                      </tr>
+                    ) : (
+                      anggotaList.map((item) => (
+                        <tr key={item.id} style={styles.tableRow}>
+                          <td style={styles.tdMuted}>#{item.id}</td>
+                          <td style={styles.tdWhite}>{item.name}</td>
+                          <td style={styles.tdMuted}>{item.email}</td>
+                          <td style={{ ...styles.td, textAlign: "right" }}>
+                            <button onClick={() => handleHapusAnggota(item.id)} style={styles.btnDelete}>
+                              Hapus
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
-
-          <div style={styles.panelCard} className="card-3d-appear panel-hover-3d">
-            <h3 style={styles.panelTitle}>
-              📊 Riwayat Kas Masuk {user.role === "admin" && "& Verifikasi Struk"}
-            </h3>
-            <div style={{ overflowX: "auto" }}>
-              <table style={styles.table}>
-                <thead>
-                  <tr style={styles.tableHeaderRow}>
-                    <th style={styles.th}>TANGGAL</th>
-                    <th style={styles.th}>KETERANGAN</th>
-                    <th style={styles.th}>NOMINAL</th>
-                    <th style={styles.th}>STATUS</th>
-                    <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transaksi.length === 0 ? (
-                    <tr>
-                      <td colSpan="5" style={styles.emptyTd}>
-                        Belum ada transaksi tercatat.
-                      </td>
-                    </tr>
-                  ) : (
-                    transaksi.map((item, idx) => (
-                      <tr key={idx} style={styles.tableRow}>
-                        <td style={styles.tdMuted}>
-                          {item.transaction_date ? new Date(item.transaction_date).toLocaleDateString("id-ID") : "-"}
-                        </td>
-                        <td style={styles.tdWhite}>{item.payer_name || item.keterangan || '-'}</td>
-                        <td style={styles.tdGreen}>
-                          +Rp {parseInt(item.amount || item.jumlah || 0).toLocaleString("id-ID")}
-                        </td>
-                        <td style={styles.td}>
-                          {item.status === "settlement" || item.status === "lunas" ? (
-                            <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700" }}>
-                              ● Disetujui
-                            </span>
-                          ) : (
-                            <span style={{ background: "rgba(234, 179, 8, 0.15)", color: "#eab308", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700" }}>
-                              ⏳ Pending
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ ...styles.td, textAlign: "right", display: "flex", gap: "6px", justifyContent: "flex-end" }}>
-                          {user.role === "admin" && (item.status === "pending" || !item.status) && (
-                            <>
-                              <button
-                                onClick={() => handleVerifikasi(item.id)}
-                                style={{ background: "#10b981", color: "#fff", border: "none", padding: "6px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
-                              >
-                                ✔ Setujui
-                              </button>
-                              <button
-                                onClick={() => handleTolak(item.id)}
-                                style={{ background: "#dc2626", color: "#fff", border: "none", padding: "6px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
-                              >
-                                ✖ Tolak
-                              </button>
-                            </>
-                          )}
-                          <button onClick={() => handleDownloadBukti(item)} style={styles.btnAction}>
-                            📥 Struk
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {user.role === "admin" && (
-          <div style={{ ...styles.panelCard, marginTop: "28px" }} className="card-3d-appear panel-hover-3d">
-            <h3 style={styles.panelTitle}>👥 Kelola Anggota Organisasi</h3>
-
-            <form onSubmit={handleTambahAnggota} style={styles.crudForm}>
-              <input
-                type="text"
-                placeholder="Nama Lengkap"
-                value={namaAnggota}
-                onChange={(e) => setNamaAnggota(e.target.value)}
-                required
-                style={styles.input}
-              />
-              <input
-                type="email"
-                placeholder="Email Anggota"
-                value={emailAnggota}
-                onChange={(e) => setEmailAnggota(e.target.value)}
-                required
-                style={styles.input}
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                value={passAnggota}
-                onChange={(e) => setPassAnggota(e.target.value)}
-                required
-                style={styles.input}
-              />
-              <button type="submit" style={styles.btnAddMember}>
-                + Tambah Anggota
-              </button>
-            </form>
-
-            <div style={{ overflowX: "auto" }}>
-              <table style={styles.table}>
-                <thead>
-                  <tr style={styles.tableHeaderRow}>
-                    <th style={styles.th}>ID</th>
-                    <th style={styles.th}>NAMA</th>
-                    <th style={styles.th}>EMAIL</th>
-                    <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {anggotaList.length === 0 ? (
-                    <tr>
-                      <td colSpan="4" style={styles.emptyTd}>
-                        Belum ada data anggota.
-                      </td>
-                    </tr>
-                  ) : (
-                    anggotaList.map((item) => (
-                      <tr key={item.id} style={styles.tableRow}>
-                        <td style={styles.tdMuted}>#{item.id}</td>
-                        <td style={styles.tdWhite}>{item.name}</td>
-                        <td style={styles.tdMuted}>{item.email}</td>
-                        <td style={{ ...styles.td, textAlign: "right" }}>
-                          <button onClick={() => handleHapusAnggota(item.id)} style={styles.btnDelete}>
-                            Hapus
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
