@@ -1,150 +1,170 @@
 import React, { useState } from "react";
-import API from "../api";
+import { supabase } from "../supabaseClient";
+import qrisImg from "../assets/qris.jpeg";
 
-const PemasukanForm = ({ onSuccess }) => {
-  const [jumlah, setJumlah] = useState("");
+function PemasukanForm({ onSuccess }) {
+  const [nominal, setNominal] = useState(25000);
   const [keterangan, setKeterangan] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const handlePay = async (e) => {
+  const handlePilihNominal = (val) => {
+    setNominal(val);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
+
+    if (!nominal || nominal <= 0) {
+      setErrorMsg("Nominal pembayaran harus lebih dari 0.");
+      return;
+    }
+
+    if (!keterangan.trim()) {
+      setErrorMsg("Keterangan / Nama Pembayar wajib diisi.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // 1. Minta snapToken ke Backend Laravel
-      const response = await API.post("/pembayaran", {
-        jumlah: parseInt(jumlah),
-        keterangan: keterangan,
-      });
+      const orderId = "TRX-DANA-" + Date.now();
 
-      const { snapToken } = response.data;
+      // Simpan transaksi langsung ke tabel 'transactions' Supabase
+      const { error } = await supabase
+        .from("transactions")
+        .insert([
+          {
+            order_id: orderId,
+            keterangan: keterangan,
+            jumlah: parseInt(nominal),
+            status: "success",
+            created_at: new Date().toISOString()
+          }
+        ]);
 
-      if (!snapToken) {
-        throw new Error("Token pembayaran tidak diterima dari backend.");
-      }
+      if (error) throw error;
 
-      // 2. Cek apakah script Midtrans sudah ter-load
-      if (typeof window.snap === "undefined") {
-        throw new Error("Script Midtrans Snap belum dimuat di index.html!");
-      }
+      alert("Pembayaran/Pemasukan kas berhasil dikonfirmasi dan dicatat!");
+      setKeterangan("");
+      setNominal(25000);
 
-      // 3. Jalankan Pop-Up Midtrans Payment Gateway
-      window.snap.pay(snapToken, {
-        onSuccess: function (result) {
-          alert("Pembayaran Berhasil!");
-          setJumlah("");
-          setKeterangan("");
-          if (onSuccess) onSuccess();
-        },
-        onPending: function (result) {
-          alert("Menunggu Pembayaran Anda...");
-          if (onSuccess) onSuccess();
-        },
-        onError: function (result) {
-          alert("Pembayaran Gagal!");
-        },
-        onClose: function () {
-          alert("Popup pembayaran ditutup sebelum transaksi selesai.");
-        },
-      });
+      // Trigger pembaruan total kas dan tabel riwayat di Dashboard
+      if (onSuccess) onSuccess();
+
     } catch (err) {
-      console.error("Payment Error:", err);
-      const msg = err.response?.data?.message || err.message || "Gagal memproses transaksi";
-      setErrorMsg(msg);
+      console.error("Gagal memproses transaksi:", err);
+      setErrorMsg(err.message || "Gagal mencatat transaksi.");
     } finally {
       setLoading(false);
     }
   };
-  
 
   return (
-    <div style={{ background: "#1a1d24", border: "1px solid #2d323e", borderRadius: "12px", padding: "24px", color: "#fff" }}>
-      <div style={{ marginBottom: "20px" }}>
-        <h3 style={{ margin: "0 0 6px 0", fontSize: "18px", fontWeight: "600", color: "#ffffff" }}>
-          Pilih / Masukkan Pembayaran
-        </h3>
-        <p style={{ margin: 0, fontSize: "13px", color: "#8c94a8" }}>
-          Proses iuran & kas aman terintegrasi otomatis via Midtrans Gateway.
+    <div>
+      <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px" }}>
+        Scan QR Code di bawah menggunakan aplikasi DANA, lalu isi form konfirmasi.
+      </p>
+
+      {/* Kartu QR Code DANA */}
+      <div style={{
+        textAlign: "center",
+        marginBottom: "20px",
+        background: "#ffffff",
+        padding: "16px",
+        borderRadius: "16px",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.3)"
+      }}>
+        <img 
+          src={qrisImg} 
+          alt="QR DANA Pembayaran Kas" 
+          style={{ maxWidth: "100%", height: "220px", objectFit: "contain", borderRadius: "8px" }} 
+        />
+        <p style={{ margin: "10px 0 0 0", fontSize: "11px", color: "#0086e6", fontWeight: "bold" }}>
+          ● Transfer via Aplikasi DANA (Atas Nama: SUMAIYAH)
         </p>
       </div>
 
       {errorMsg && (
-        <div style={{ background: "#3b1719", border: "1px solid #842029", color: "#ea868f", padding: "10px 14px", borderRadius: "6px", fontSize: "13px", marginBottom: "16px" }}>
+        <div style={{
+          background: "#2d1215",
+          border: "1px solid #7f1d1d",
+          color: "#fca5a5",
+          padding: "10px 14px",
+          borderRadius: "10px",
+          fontSize: "12px",
+          marginBottom: "16px"
+        }}>
           ⚠️ {errorMsg}
         </div>
       )}
 
-      {/* Preset Pilihan Nominal bergaya Resurgent Portal */}
+      {/* Pilihan Nominal Cepat */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
-        {[10000, 25000, 50000, 100000].map((nominal) => (
+        {[10000, 25000, 50000, 100000].map((val) => (
           <button
-            key={nominal}
+            key={val}
             type="button"
-            onClick={() => setJumlah(nominal)}
+            onClick={() => handlePilihNominal(val)}
             style={{
-              background: jumlah == nominal ? "#2563eb" : "#242936",
-              border: jumlah == nominal ? "1px solid #3b82f6" : "1px solid #343b4d",
-              color: "#fff",
               padding: "10px",
-              borderRadius: "6px",
-              cursor: "pointer",
+              background: nominal === val ? "#2563eb" : "#1a1d28",
+              color: "#fff",
+              border: nominal === val ? "1px solid #3b82f6" : "1px solid #272a34",
+              borderRadius: "8px",
+              fontWeight: "600",
               fontSize: "13px",
-              fontWeight: "500",
-              transition: "all 0.2s"
+              cursor: "pointer"
             }}
           >
-            Rp {nominal.toLocaleString("id-ID")}
+            Rp {val.toLocaleString("id-ID")}
           </button>
         ))}
       </div>
 
-      <form onSubmit={handlePay}>
-        <div style={{ marginBottom: "16px" }}>
-          <label style={{ display: "block", fontSize: "13px", marginBottom: "6px", color: "#cbd5e1" }}>
+      <form onSubmit={handleSubmit}>
+        <div style={{ marginBottom: "14px" }}>
+          <label style={{ display: "block", fontSize: "12px", color: "#94a3b8", marginBottom: "6px" }}>
             Nominal Kustom (Rp)
           </label>
           <input
             type="number"
-            value={jumlah}
-            onChange={(e) => setJumlah(e.target.value)}
+            value={nominal}
+            onChange={(e) => setNominal(e.target.value)}
             required
-            placeholder="Masukkan nominal angka"
             style={{
               width: "100%",
-              padding: "10px 14px",
-              borderRadius: "6px",
-              background: "#12151c",
-              border: "1px solid #343b4d",
+              padding: "10px 12px",
+              background: "#0a0b0e",
+              border: "1px solid #272a34",
               color: "#fff",
+              borderRadius: "8px",
               boxSizing: "border-box",
-              outline: "none",
-              fontSize: "14px"
+              outline: "none"
             }}
           />
         </div>
 
         <div style={{ marginBottom: "20px" }}>
-          <label style={{ display: "block", fontSize: "13px", marginBottom: "6px", color: "#cbd5e1" }}>
+          <label style={{ display: "block", fontSize: "12px", color: "#94a3b8", marginBottom: "6px" }}>
             Keterangan / Nama Pembayar
           </label>
           <input
             type="text"
+            placeholder="Contoh: Kas Bulan Ini - Budi"
             value={keterangan}
             onChange={(e) => setKeterangan(e.target.value)}
             required
-            placeholder="Contoh: Iuran Minggu 1 - Budi"
             style={{
               width: "100%",
-              padding: "10px 14px",
-              borderRadius: "6px",
-              background: "#12151c",
-              border: "1px solid #343b4d",
+              padding: "10px 12px",
+              background: "#0a0b0e",
+              border: "1px solid #272a34",
               color: "#fff",
+              borderRadius: "8px",
               boxSizing: "border-box",
-              outline: "none",
-              fontSize: "14px"
+              outline: "none"
             }}
           />
         </div>
@@ -155,21 +175,20 @@ const PemasukanForm = ({ onSuccess }) => {
           style={{
             width: "100%",
             padding: "12px",
-            background: loading ? "#475569" : "#2563eb",
+            background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
             color: "#fff",
             border: "none",
-            borderRadius: "6px",
-            fontSize: "14px",
-            fontWeight: "600",
-            cursor: loading ? "not-allowed" : "pointer",
-            boxShadow: "0 4px 12px rgba(37, 99, 235, 0.3)"
+            borderRadius: "10px",
+            fontWeight: "700",
+            cursor: "pointer",
+            fontSize: "14px"
           }}
         >
-          {loading ? "Menghubungkan Midtrans..." : "Lanjutkan Pembayaran →"}
+          {loading ? "Memproses..." : "Konfirmasi Pembayaran Kas →"}
         </button>
       </form>
     </div>
   );
-};
+}
 
 export default PemasukanForm;
