@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import KasForm from "./components/KasForm";
+import KasForm from "./components/KasForm.jsx";
 import { supabase } from "./supabaseClient";
 import logoImg from "./assets/logo.jpeg"; 
 
