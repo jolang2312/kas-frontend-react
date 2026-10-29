@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { supabase } from "../supabaseClient";
 import qrisImg from "../assets/qris.jpeg";
 
-// Ubah nama fungsi dari PemasukanForm menjadi KasForm
 function KasForm({ onSuccess }) {
   const [nominal, setNominal] = useState(25000);
   const [keterangan, setKeterangan] = useState("");
@@ -31,14 +30,16 @@ function KasForm({ onSuccess }) {
 
     try {
       const orderId = "TRX-DANA-" + Date.now();
+      const valNominal = parseInt(nominal);
 
+      // Gunakan 'amount' sesuai nama kolom tabel transactions di Supabase kamu
       const { error } = await supabase
         .from("transactions")
         .insert([
           {
             order_id: orderId,
             keterangan: keterangan,
-            jumlah: parseInt(nominal),
+            amount: valNominal,
             status: "success",
             created_at: new Date().toISOString()
           }
@@ -188,5 +189,4 @@ function KasForm({ onSuccess }) {
   );
 }
 
-// Sesuaikan export default
 export default KasForm;
