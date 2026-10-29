@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import KasForm from "./components/KasForm";
+import KonfirmasiForm from "./components/KonfirmasiForm";
 import { supabase } from "./supabaseClient";
 import logoImg from "./assets/logo.jpeg"; 
 
@@ -322,7 +322,7 @@ function App() {
           {user.role === "anggota" && (
             <div style={styles.panelCard}>
               <h3 style={styles.panelTitle}>💳 Input Pemasukan / Kas</h3>
-              <KasForm onSuccess={fetchTransaksi} />
+              <KonfirmasiForm onSuccess={fetchTransaksi} />
             </div>
           )}
 
