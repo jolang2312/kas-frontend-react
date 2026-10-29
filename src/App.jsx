@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import InputForm from "./components/InputForm";
 import Background3D from "./components/Background3D";
-import CharacterCard3D from "./components/CharacterCard3D"; // Import animasi 3D maskot
 import { supabase } from "./supabaseClient";
 import logoImg from "./assets/logo.jpeg";
 
@@ -282,23 +281,18 @@ function App() {
     return matchesDate && matchesName;
   });
 
-  // === TAMPILAN FORM LOGIN ANGGOTA / PUBLIK ===
+  // FORM LOGIN
   if (!user) {
     return (
       <div style={styles.loginContainer}>
         <Background3D role="anggota" />
         <div style={{ ...styles.loginCard, position: "relative", zIndex: 1 }}>
-          <div style={{ textAlign: "center", marginBottom: "16px" }}>
-            <img src={logoImg} alt="Southern Base" style={{ width: "80px", borderRadius: "8px" }} />
-            <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#f4f4f5", margin: "10px 0 2px 0" }}>
+          <div style={{ textAlign: "center", marginBottom: "24px" }}>
+            <img src={logoImg} alt="Southern Base" style={{ width: "96px", borderRadius: "8px" }} />
+            <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#f4f4f5", margin: "12px 0 2px 0" }}>
               SOUTHERN BASE
             </h2>
             <p style={{ fontSize: "11px", color: "#71717a", margin: 0 }}>Portal Manajemen Kas Organisasi</p>
-          </div>
-
-          {/* ANIMASI 3D CARD MASKOT TAMPIL DI HALAMAN LOGIN */}
-          <div style={{ marginBottom: "16px" }}>
-            <CharacterCard3D />
           </div>
 
           {loginError && <div style={styles.errorBox}>⚠️ {loginError}</div>}
@@ -429,62 +423,54 @@ function App() {
 
           {/* === TAMPILAN KHUSUS ANGGOTA === */}
           {!isAdmin && (
-            <>
-              {/* ANIMASI 3D CARD MASKOT HANYA MUNCUL DI DASHBOARD ANGGOTA */}
-              <div style={{ ...styles.card, marginTop: "16px", textAlign: "center" }}>
-                <h3 style={styles.cardTitle}>🔥 SOUTHERNBASE OFFICIAL MASCOT</h3>
-                <CharacterCard3D />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px", marginTop: "16px" }}>
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>Input Pembayaran Kas</h3>
+                <InputForm onSuccess={fetchTransaksi} />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px", marginTop: "16px" }}>
-                <div style={styles.card}>
-                  <h3 style={styles.cardTitle}>Input Pembayaran Kas</h3>
-                  <InputForm onSuccess={fetchTransaksi} />
-                </div>
-
-                <div style={styles.card}>
-                  <h3 style={styles.cardTitle}>Riwayat Transaksi Saya</h3>
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={styles.table}>
-                      <thead>
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>Riwayat Transaksi Saya</h3>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>TANGGAL</th>
+                        <th style={styles.th}>NOMINAL</th>
+                        <th style={styles.th}>STATUS</th>
+                        <th style={{ ...styles.th, textAlign: "right" }}>BUKTI</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {myTransaksi.length === 0 ? (
                         <tr>
-                          <th style={styles.th}>TANGGAL</th>
-                          <th style={styles.th}>NOMINAL</th>
-                          <th style={styles.th}>STATUS</th>
-                          <th style={{ ...styles.th, textAlign: "right" }}>BUKTI</th>
+                          <td colSpan="4" style={styles.tdEmpty}>Belum ada riwayat transaksi atas nama Anda.</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {myTransaksi.length === 0 ? (
-                          <tr>
-                            <td colSpan="4" style={styles.tdEmpty}>Belum ada riwayat transaksi atas nama Anda.</td>
+                      ) : (
+                        myTransaksi.map((item) => (
+                          <tr key={item.id} style={styles.tr}>
+                            <td style={styles.tdMuted}>{item.transaction_date || "-"}</td>
+                            <td style={styles.tdGreen}>+Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}</td>
+                            <td style={styles.td}>
+                              <span style={item.status === "settlement" || item.status === "lunas" ? styles.badgeSuccess : styles.badgePending}>
+                                {item.status === "settlement" || item.status === "lunas" ? "Disetujui" : "Pending"}
+                              </span>
+                            </td>
+                            <td style={{ ...styles.td, textAlign: "right" }}>
+                              {item.description && item.description.startsWith("data:image") && (
+                                <button onClick={() => setSelectedProof(item.description)} style={styles.btnProof}>
+                                  Lihat Bukti
+                                </button>
+                              )}
+                            </td>
                           </tr>
-                        ) : (
-                          myTransaksi.map((item) => (
-                            <tr key={item.id} style={styles.tr}>
-                              <td style={styles.tdMuted}>{item.transaction_date || "-"}</td>
-                              <td style={styles.tdGreen}>+Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}</td>
-                              <td style={styles.td}>
-                                <span style={item.status === "settlement" || item.status === "lunas" ? styles.badgeSuccess : styles.badgePending}>
-                                  {item.status === "settlement" || item.status === "lunas" ? "Disetujui" : "Pending"}
-                                </span>
-                              </td>
-                              <td style={{ ...styles.td, textAlign: "right" }}>
-                                {item.description && item.description.startsWith("data:image") && (
-                                  <button onClick={() => setSelectedProof(item.description)} style={styles.btnProof}>
-                                    Lihat Bukti
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           {/* === TAMPILAN KHUSUS ADMIN MASTER === */}
@@ -791,7 +777,7 @@ const styles = {
     borderRadius: "10px",
     padding: "24px",
     width: "100%",
-    maxWidth: "360px",
+    maxWidth: "340px",
   },
   label: { display: "block", fontSize: "11px", color: "#a1a1aa", marginBottom: "6px", fontWeight: "600" },
   input: {
