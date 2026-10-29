@@ -394,10 +394,29 @@ function App() {
 
   return (
     <div style={{ minHeight: "100vh", position: "relative", color: "#f4f4f5" }}>
+      {/* STYLE KHUSUS PRINT */}
+      <style>{`
+        @media print {
+          header, button, form, .no-print {
+            display: none !important;
+          }
+          body {
+            background: #fff !important;
+            color: #000 !important;
+          }
+          table {
+            color: #000 !important;
+          }
+          th, td {
+            border-bottom: 1px solid #ccc !important;
+          }
+        }
+      `}</style>
+
       <Background3D role={user.role} />
 
       {selectedProof && (
-        <div onClick={() => setSelectedProof(null)} style={styles.modalOverlay}>
+        <div onClick={() => setSelectedProof(null)} style={styles.modalOverlay} className="no-print">
           <div onClick={(e) => e.stopPropagation()} style={styles.modalContent}>
             <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#f4f4f5" }}>
               Bukti Transfer
@@ -420,11 +439,6 @@ function App() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            {isAdmin && (
-              <button onClick={handlePrintReport} style={styles.btnPrint}>
-                🖨️ Cetak Laporan
-              </button>
-            )}
             <div style={styles.userBadge}>
               <span style={{ fontSize: "12px", color: "#e4e4e7" }}>{user.name}</span>
               <span style={isAdmin ? styles.badgeAdmin : styles.badgeMember}>
@@ -453,7 +467,7 @@ function App() {
               )}
             </div>
 
-            <div style={styles.card}>
+            <div style={styles.card} className="no-print">
               <span style={styles.cardHeaderLabel}>PENGATURAN AKUN SAYA</span>
               <form onSubmit={handleUpdateProfilePribadi} style={{ marginTop: "10px" }}>
                 {profileMsg && <div style={{ fontSize: "11px", marginBottom: "8px" }}>{profileMsg}</div>}
@@ -481,7 +495,7 @@ function App() {
 
           {/* PENGINGAT STATUS KAS (ANGGOTA) */}
           {!isAdmin && (
-            <div style={{ ...styles.card, marginTop: "16px", borderLeft: "4px solid #eab308", background: "rgba(234, 179, 8, 0.05)" }}>
+            <div style={{ ...styles.card, marginTop: "16px", borderLeft: "4px solid #eab308", background: "rgba(234, 179, 8, 0.05)" }} className="no-print">
               <h4 style={{ margin: "0 0 4px 0", fontSize: "13px", color: "#eab308" }}>📌 Status Kas Anggota</h4>
               <p style={{ fontSize: "12px", color: "#a1a1aa", margin: 0 }}>
                 Pastikan Anda membayar kas bulanan tepat waktu. Unggah bukti pembayaran melalui form di bawah ini.
@@ -492,7 +506,7 @@ function App() {
           {/* === TAMPILAN KHUSUS ANGGOTA === */}
           {!isAdmin && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px", marginTop: "16px" }}>
-              <div style={styles.card}>
+              <div style={styles.card} className="no-print">
                 <h3 style={styles.cardTitle}>Input Pembayaran Kas</h3>
                 <InputForm onSuccess={fetchTransaksi} />
               </div>
@@ -562,7 +576,7 @@ function App() {
           {isAdmin && (
             <>
               {/* MASTER CRUD ANGGOTA */}
-              <div style={{ ...styles.card, marginTop: "16px", border: "1px solid #1e3a8a" }}>
+              <div style={{ ...styles.card, marginTop: "16px", border: "1px solid #1e3a8a" }} className="no-print">
                 <h3 style={styles.cardTitle}>👥 Master Data Anggota Organisasi (CRUD)</h3>
 
                 <form onSubmit={handleTambahAnggota} style={{ marginBottom: "16px", background: "#09090b", padding: "12px", borderRadius: "8px", border: "1px solid #27272a" }}>
@@ -716,7 +730,7 @@ function App() {
               <div style={{ ...styles.card, marginTop: "16px", border: "1px solid #991b1b" }}>
                 <h3 style={styles.cardTitle}>💸 Pencatatan Pengeluaran Kas (Kas Keluar)</h3>
 
-                <form onSubmit={handleTambahKasKeluar} style={{ marginBottom: "16px", background: "#09090b", padding: "12px", borderRadius: "8px", border: "1px solid #27272a" }}>
+                <form onSubmit={handleTambahKasKeluar} style={{ marginBottom: "16px", background: "#09090b", padding: "12px", borderRadius: "8px", border: "1px solid #27272a" }} className="no-print">
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "8px" }}>
                     <input
                       type="text"
@@ -807,27 +821,38 @@ function App() {
                 </div>
               </div>
 
-              {/* FILTER & VERIFIKASI TRANSAKSI ANGGOTA */}
+              {/* FILTER, CETAK & VERIFIKASI TRANSAKSI ANGGOTA */}
               <div style={{ ...styles.card, marginTop: "16px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
                   <h3 style={{ ...styles.cardTitle, margin: 0 }}>
-                    Audit & Verifikasi Transaksi Masuk
+                    📋 Audit & Verifikasi Transaksi Masuk
                   </h3>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFilterDate("");
-                      setFilterMemberName("");
-                    }}
-                    style={{ ...styles.btnEdit, background: "#27272a" }}
-                  >
-                    Reset Filter
-                  </button>
+
+                  <div style={{ display: "flex", gap: "8px" }} className="no-print">
+                    <button
+                      type="button"
+                      onClick={handlePrintReport}
+                      style={{ ...styles.btnEdit, background: "#16a34a", padding: "6px 12px" }}
+                    >
+                      🖨️ Cetak Laporan Kas
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterDate("");
+                        setFilterMemberName("");
+                      }}
+                      style={{ ...styles.btnEdit, background: "#27272a", padding: "6px 12px" }}
+                    >
+                      Reset Filter
+                    </button>
+                  </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", marginBottom: "16px", background: "#09090b", padding: "12px", borderRadius: "8px", border: "1px solid #27272a" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", marginBottom: "16px", background: "#09090b", padding: "12px", borderRadius: "8px", border: "1px solid #27272a" }} className="no-print">
                   <div>
-                    <label style={{ ...styles.label, marginBottom: "4px" }}>Tanggal:</label>
+                    <label style={{ ...styles.label, marginBottom: "4px" }}>Filter Tanggal:</label>
                     <input
                       type="date"
                       value={filterDate}
@@ -836,10 +861,10 @@ function App() {
                     />
                   </div>
                   <div>
-                    <label style={{ ...styles.label, marginBottom: "4px" }}>Nama Anggota:</label>
+                    <label style={{ ...styles.label, marginBottom: "4px" }}>Filter Nama Anggota:</label>
                     <input
                       type="text"
-                      placeholder="Nama anggota..."
+                      placeholder="Cari nama anggota..."
                       value={filterMemberName}
                       onChange={(e) => setFilterMemberName(e.target.value)}
                       style={{ ...styles.inputSm, background: "#18181b" }}
@@ -975,7 +1000,6 @@ const styles = {
   badgeAdmin: { background: "#2563eb", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: "800" },
   badgeMember: { background: "#16a34a", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: "800" },
   btnLogout: { background: "#dc2626", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "600", cursor: "pointer" },
-  btnPrint: { background: "#3f3f46", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "600", cursor: "pointer" },
   heroGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" },
   card: { background: "#18181b", border: "1px solid #27272a", borderRadius: "10px", padding: "18px" },
   cardHeaderLabel: { fontSize: "10px", fontWeight: "800", color: "#a1a1aa", letterSpacing: "1px" },
