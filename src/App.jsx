@@ -20,7 +20,7 @@ function App() {
   const [anggotaList, setAnggotaList] = useState([]);
   const [selectedProof, setSelectedProof] = useState(null);
 
-  // Filter Tanggal & Nama Anggota khusus Admin
+  // Filter khusus Admin
   const [filterDate, setFilterDate] = useState("");
   const [filterMemberName, setFilterMemberName] = useState("");
 
@@ -193,10 +193,20 @@ function App() {
     }
   };
 
-  const totalVerified = transaksi
+  const isAdmin = user?.role === "admin";
+
+  // Filter transaksi khusus Anggota (hanya melihat miliknya sendiri)
+  const myTransaksi = transaksi.filter((item) => {
+    const payer = (item.payer_name || item.keterangan || "").toLowerCase();
+    return payer.includes((user?.name || "").toLowerCase());
+  });
+
+  // Total Kas Terverifikasi
+  const totalVerified = (isAdmin ? transaksi : myTransaksi)
     .filter((t) => t.status === "settlement" || t.status === "lunas")
     .reduce((acc, c) => acc + parseInt(c.amount || c.jumlah || 0), 0);
 
+  // Rekap Kas Per Anggota (Khusus Admin)
   const rekapPerPembayar = transaksi
     .filter((item) => item.status === "settlement" || item.status === "lunas")
     .reduce((acc, curr) => {
@@ -207,7 +217,8 @@ function App() {
       return acc;
     }, {});
 
-  const filteredTransaksi = transaksi.filter((item) => {
+  // Filter Admin berdasarkan tanggal & nama
+  const filteredTransaksiAdmin = transaksi.filter((item) => {
     const matchesDate = filterDate ? item.transaction_date === filterDate : true;
     const matchesName = filterMemberName
       ? (item.payer_name || "").toLowerCase().includes(filterMemberName.toLowerCase())
@@ -273,8 +284,6 @@ function App() {
     );
   }
 
-  const isAdmin = user.role === "admin";
-
   return (
     <div style={{ minHeight: "100vh", position: "relative", color: "#f4f4f5" }}>
       <Background3D role={user.role} />
@@ -314,18 +323,19 @@ function App() {
         </header>
 
         <main style={{ maxWidth: "1100px", margin: "24px auto", padding: "0 16px" }}>
+          {/* HERO GRID TOTAL KAS & PENGATURAN */}
           <div style={styles.heroGrid}>
             <div style={{ ...styles.card, borderLeft: isAdmin ? "4px solid #3b82f6" : "4px solid #22c55e" }}>
               <span style={styles.cardHeaderLabel}>
-                TOTAL KAS TERVERIFIKASI
+                {isAdmin ? "TOTAL KAS ORGANISASI (VERIFIKASI)" : "KAS TERBAYAR SAYA"}
               </span>
               <h1 style={{ fontSize: "30px", color: "#22c55e", margin: "6px 0", fontWeight: "800" }}>
                 Rp {totalVerified.toLocaleString("id-ID")}
               </h1>
               <p style={{ fontSize: "11px", color: "#71717a", margin: 0 }}>
                 {isAdmin
-                  ? "Panel verifikasi & manajemen saldo seluruh kas"
-                  : "Akumulasi saldo kas resmi organisasi"}
+                  ? "Verifikasi & akumulasi saldo seluruh kas anggota"
+                  : "Akumulasi saldo kas resmi terverifikasi atas nama Anda"}
               </p>
             </div>
 
@@ -355,254 +365,266 @@ function App() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px", marginTop: "16px" }}>
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>Akumulasi Pembayaran Per Anggota</h3>
-              <div style={{ overflowX: "auto" }}>
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>NAMA ANGGOTA</th>
-                      <th style={{ ...styles.th, textAlign: "right" }}>TOTAL TERKUMPUL</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.keys(rekapPerPembayar).length === 0 ? (
+          {/* === TAMPILAN KHUSUS ANGGOTA (TERISOLASI) === */}
+          {!isAdmin && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px", marginTop: "16px" }}>
+              {/* FORM INPUT ANGGOTA */}
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>Input Pembayaran Kas</h3>
+                <InputForm onSuccess={fetchTransaksi} />
+              </div>
+
+              {/* RIWAYAT TRANSAKSI KHUSUS DIRI SENDIRI */}
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>Riwayat Transaksi Saya</h3>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={styles.table}>
+                    <thead>
                       <tr>
-                        <td colSpan="2" style={styles.tdEmpty}>Belum ada data pembayaran terverifikasi.</td>
+                        <th style={styles.th}>TANGGAL</th>
+                        <th style={styles.th}>NOMINAL</th>
+                        <th style={styles.th}>STATUS</th>
+                        <th style={{ ...styles.th, textAlign: "right" }}>BUKTI</th>
                       </tr>
-                    ) : (
-                      Object.entries(rekapPerPembayar).map(([nama, totalAmount], idx) => (
-                        <tr key={idx} style={styles.tr}>
-                          <td style={styles.tdWhite}>{nama}</td>
-                          <td style={{ ...styles.tdGreen, textAlign: "right" }}>
-                            Rp {totalAmount.toLocaleString("id-ID")}
-                          </td>
+                    </thead>
+                    <tbody>
+                      {myTransaksi.length === 0 ? (
+                        <tr>
+                          <td colSpan="4" style={styles.tdEmpty}>Belum ada riwayat transaksi atas nama Anda.</td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>Input Pembayaran Kas</h3>
-              <InputForm onSuccess={fetchTransaksi} />
-            </div>
-          </div>
-
-          {isAdmin && (
-            <div style={{ ...styles.card, marginTop: "16px", border: "1px solid #1e3a8a" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
-                <h3 style={{ ...styles.cardTitle, margin: 0 }}>
-                  Filter Transaksi Per Anggota
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilterDate("");
-                    setFilterMemberName("");
-                  }}
-                  style={{ ...styles.btnEdit, background: "#27272a" }}
-                >
-                  Reset Filter
-                </button>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", marginBottom: "16px", background: "#09090b", padding: "12px", borderRadius: "8px", border: "1px solid #27272a" }}>
-                <div>
-                  <label style={{ ...styles.label, marginBottom: "4px" }}>Tanggal:</label>
-                  <input
-                    type="date"
-                    value={filterDate}
-                    onChange={(e) => setFilterDate(e.target.value)}
-                    style={{ ...styles.inputSm, background: "#18181b", colorScheme: "dark" }}
-                  />
-                </div>
-                <div>
-                  <label style={{ ...styles.label, marginBottom: "4px" }}>Nama Anggota:</label>
-                  <input
-                    type="text"
-                    placeholder="Nama anggota..."
-                    value={filterMemberName}
-                    onChange={(e) => setFilterMemberName(e.target.value)}
-                    style={{ ...styles.inputSm, background: "#18181b" }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ overflowX: "auto" }}>
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>TANGGAL</th>
-                      <th style={styles.th}>PEMBAYAR</th>
-                      <th style={styles.th}>NOMINAL</th>
-                      <th style={styles.th}>STATUS</th>
-                      <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTransaksi.length === 0 ? (
-                      <tr>
-                        <td colSpan="5" style={styles.tdEmpty}>
-                          Tidak ditemukan data transaksi.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredTransaksi.map((item) => (
-                        <tr key={item.id} style={styles.tr}>
-                          <td style={styles.tdMuted}>{item.transaction_date || "-"}</td>
-                          <td style={styles.tdWhite}>{item.payer_name || item.keterangan || "-"}</td>
-                          <td style={styles.tdGreen}>+Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}</td>
-                          <td style={styles.td}>
-                            <span style={item.status === "settlement" || item.status === "lunas" ? styles.badgeSuccess : styles.badgePending}>
-                              {item.status === "settlement" || item.status === "lunas" ? "Disetujui" : "Pending"}
-                            </span>
-                          </td>
-                          <td style={{ ...styles.td, textAlign: "right" }}>
-                            <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                      ) : (
+                        myTransaksi.map((item) => (
+                          <tr key={item.id} style={styles.tr}>
+                            <td style={styles.tdMuted}>{item.transaction_date || "-"}</td>
+                            <td style={styles.tdGreen}>+Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}</td>
+                            <td style={styles.td}>
+                              <span style={item.status === "settlement" || item.status === "lunas" ? styles.badgeSuccess : styles.badgePending}>
+                                {item.status === "settlement" || item.status === "lunas" ? "Disetujui" : "Pending"}
+                              </span>
+                            </td>
+                            <td style={{ ...styles.td, textAlign: "right" }}>
                               {item.description && item.description.startsWith("data:image") && (
                                 <button onClick={() => setSelectedProof(item.description)} style={styles.btnProof}>
-                                  Bukti
+                                  Lihat Bukti
                                 </button>
                               )}
-                              {(item.status === "pending" || !item.status) && (
-                                <>
-                                  <button onClick={() => handleVerifikasi(item.id)} style={styles.btnApprove}>
-                                    Setujui
-                                  </button>
-                                  <button onClick={() => handleTolak(item.id)} style={styles.btnReject}>
-                                    Tolak
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
 
-          <div style={{ ...styles.card, marginTop: "16px" }}>
-            <h3 style={styles.cardTitle}>Jurnal Transaksi Kas</h3>
-            <div style={{ overflowX: "auto" }}>
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <th style={styles.th}>TANGGAL</th>
-                    <th style={styles.th}>KETERANGAN</th>
-                    <th style={styles.th}>NOMINAL</th>
-                    <th style={styles.th}>STATUS</th>
-                    <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transaksi.length === 0 ? (
-                    <tr>
-                      <td colSpan="5" style={styles.tdEmpty}>Belum ada transaksi tercatat.</td>
-                    </tr>
-                  ) : (
-                    transaksi.map((item) => (
-                      <tr key={item.id} style={styles.tr}>
-                        <td style={styles.tdMuted}>{item.transaction_date || "-"}</td>
-                        <td style={styles.tdWhite}>{item.payer_name || item.keterangan || "-"}</td>
-                        <td style={styles.tdGreen}>+Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}</td>
-                        <td style={styles.td}>
-                          <span style={item.status === "settlement" || item.status === "lunas" ? styles.badgeSuccess : styles.badgePending}>
-                            {item.status === "settlement" || item.status === "lunas" ? "Disetujui" : "Pending"}
-                          </span>
-                        </td>
-                        <td style={{ ...styles.td, textAlign: "right" }}>
-                          <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
-                            {item.description && item.description.startsWith("data:image") && (
-                              <button onClick={() => setSelectedProof(item.description)} style={styles.btnProof}>
-                                Bukti
+          {/* === TAMPILAN KHUSUS ADMIN (MASTER CONTROL) === */}
+          {isAdmin && (
+            <>
+              {/* REKAP PER ANGGOTA & FORM INPUT */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px", marginTop: "16px" }}>
+                <div style={styles.card}>
+                  <h3 style={styles.cardTitle}>Akumulasi Pembayaran Per Anggota</h3>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={styles.table}>
+                      <thead>
+                        <tr>
+                          <th style={styles.th}>NAMA ANGGOTA</th>
+                          <th style={{ ...styles.th, textAlign: "right" }}>TOTAL TERKUMPUL</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.keys(rekapPerPembayar).length === 0 ? (
+                          <tr>
+                            <td colSpan="2" style={styles.tdEmpty}>Belum ada data pembayaran terverifikasi.</td>
+                          </tr>
+                        ) : (
+                          Object.entries(rekapPerPembayar).map(([nama, totalAmount], idx) => (
+                            <tr key={idx} style={styles.tr}>
+                              <td style={styles.tdWhite}>{nama}</td>
+                              <td style={{ ...styles.tdGreen, textAlign: "right" }}>
+                                Rp {totalAmount.toLocaleString("id-ID")}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div style={styles.card}>
+                  <h3 style={styles.cardTitle}>Input Pembayaran Kas (Admin)</h3>
+                  <InputForm onSuccess={fetchTransaksi} />
+                </div>
+              </div>
+
+              {/* FILTER & PERSETUJUAN TRANSAKSI ANGGOTA */}
+              <div style={{ ...styles.card, marginTop: "16px", border: "1px solid #1e3a8a" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
+                  <h3 style={{ ...styles.cardTitle, margin: 0 }}>
+                    Filter & Verifikasi Transaksi Anggota
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterDate("");
+                      setFilterMemberName("");
+                    }}
+                    style={{ ...styles.btnEdit, background: "#27272a" }}
+                  >
+                    Reset Filter
+                  </button>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", marginBottom: "16px", background: "#09090b", padding: "12px", borderRadius: "8px", border: "1px solid #27272a" }}>
+                  <div>
+                    <label style={{ ...styles.label, marginBottom: "4px" }}>Tanggal:</label>
+                    <input
+                      type="date"
+                      value={filterDate}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                      style={{ ...styles.inputSm, background: "#18181b", colorScheme: "dark" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ ...styles.label, marginBottom: "4px" }}>Nama Anggota:</label>
+                    <input
+                      type="text"
+                      placeholder="Nama anggota..."
+                      value={filterMemberName}
+                      onChange={(e) => setFilterMemberName(e.target.value)}
+                      style={{ ...styles.inputSm, background: "#18181b" }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ overflowX: "auto" }}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>TANGGAL</th>
+                        <th style={styles.th}>PEMBAYAR</th>
+                        <th style={styles.th}>NOMINAL</th>
+                        <th style={styles.th}>STATUS</th>
+                        <th style={{ ...styles.th, textAlign: "right" }}>AKSI ADMIN</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTransaksiAdmin.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" style={styles.tdEmpty}>
+                            Tidak ditemukan data transaksi.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredTransaksiAdmin.map((item) => (
+                          <tr key={item.id} style={styles.tr}>
+                            <td style={styles.tdMuted}>{item.transaction_date || "-"}</td>
+                            <td style={styles.tdWhite}>{item.payer_name || item.keterangan || "-"}</td>
+                            <td style={styles.tdGreen}>+Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}</td>
+                            <td style={styles.td}>
+                              <span style={item.status === "settlement" || item.status === "lunas" ? styles.badgeSuccess : styles.badgePending}>
+                                {item.status === "settlement" || item.status === "lunas" ? "Disetujui" : "Pending"}
+                              </span>
+                            </td>
+                            <td style={{ ...styles.td, textAlign: "right" }}>
+                              <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                                {item.description && item.description.startsWith("data:image") && (
+                                  <button onClick={() => setSelectedProof(item.description)} style={styles.btnProof}>
+                                    Bukti
+                                  </button>
+                                )}
+                                {(item.status === "pending" || !item.status) && (
+                                  <>
+                                    <button onClick={() => handleVerifikasi(item.id)} style={styles.btnApprove}>
+                                      Setujui
+                                    </button>
+                                    <button onClick={() => handleTolak(item.id)} style={styles.btnReject}>
+                                      Tolak
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* MANAJEMEN KREDENSIAL ANGGOTA */}
+              <div style={{ ...styles.card, marginTop: "16px" }}>
+                <h3 style={styles.cardTitle}>Manajemen Kredensial Anggota</h3>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>ID</th>
+                        <th style={styles.th}>NAMA LENGKAP</th>
+                        <th style={styles.th}>EMAIL</th>
+                        <th style={styles.th}>KATA SANDI</th>
+                        <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {anggotaList.map((m) => (
+                        <tr key={m.id} style={styles.tr}>
+                          <td style={styles.tdMuted}>#{m.id}</td>
+                          <td style={styles.tdWhite}>
+                            {editingUserId === m.id ? (
+                              <input
+                                type="text"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                style={styles.inputSm}
+                              />
+                            ) : (
+                              m.name
+                            )}
+                          </td>
+                          <td style={styles.tdMuted}>{m.email}</td>
+                          <td style={styles.tdWhite}>
+                            {editingUserId === m.id ? (
+                              <input
+                                type="text"
+                                placeholder="Sandi Baru"
+                                value={editPass}
+                                onChange={(e) => setEditPass(e.target.value)}
+                                style={styles.inputSm}
+                              />
+                            ) : (
+                              <span style={{ fontFamily: "monospace" }}>{m.password}</span>
+                            )}
+                          </td>
+                          <td style={{ ...styles.td, textAlign: "right" }}>
+                            {editingUserId === m.id ? (
+                              <button onClick={() => handleSaveEditAnggota(m.id)} style={styles.btnSaveSm}>
+                                Simpan
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setEditingUserId(m.id);
+                                  setEditName(m.name);
+                                  setEditPass(m.password);
+                                }}
+                                style={styles.btnEdit}
+                              >
+                                Edit
                               </button>
                             )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {isAdmin && (
-            <div style={{ ...styles.card, marginTop: "16px" }}>
-              <h3 style={styles.cardTitle}>Manajemen Kredensial Anggota</h3>
-              <div style={{ overflowX: "auto" }}>
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>ID</th>
-                      <th style={styles.th}>NAMA LENGKAP</th>
-                      <th style={styles.th}>EMAIL</th>
-                      <th style={styles.th}>KATA SANDI</th>
-                      <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {anggotaList.map((m) => (
-                      <tr key={m.id} style={styles.tr}>
-                        <td style={styles.tdMuted}>#{m.id}</td>
-                        <td style={styles.tdWhite}>
-                          {editingUserId === m.id ? (
-                            <input
-                              type="text"
-                              value={editName}
-                              onChange={(e) => setEditName(e.target.value)}
-                              style={styles.inputSm}
-                            />
-                          ) : (
-                            m.name
-                          )}
-                        </td>
-                        <td style={styles.tdMuted}>{m.email}</td>
-                        <td style={styles.tdWhite}>
-                          {editingUserId === m.id ? (
-                            <input
-                              type="text"
-                              placeholder="Sandi Baru"
-                              value={editPass}
-                              onChange={(e) => setEditPass(e.target.value)}
-                              style={styles.inputSm}
-                            />
-                          ) : (
-                            <span style={{ fontFamily: "monospace" }}>{m.password}</span>
-                          )}
-                        </td>
-                        <td style={{ ...styles.td, textAlign: "right" }}>
-                          {editingUserId === m.id ? (
-                            <button onClick={() => handleSaveEditAnggota(m.id)} style={styles.btnSaveSm}>
-                              Simpan
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setEditingUserId(m.id);
-                                setEditName(m.name);
-                                setEditPass(m.password);
-                              }}
-                              style={styles.btnEdit}
-                            >
-                              Edit
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </main>
       </div>
