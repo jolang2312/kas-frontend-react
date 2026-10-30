@@ -1,30 +1,69 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta 
-      name="viewport" 
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" 
-    />
-    <title>Resurgent Cash Portal</title>
-    
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link 
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" 
-      rel="stylesheet" 
-    />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Halaman Checkout - Southern Base</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Import Map untuk Three.js -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="checkout-container">
+    <!-- Bagian Kiri: Preview Model 3D -->
+    <div class="canvas-section">
+      <div class="brand-header">
+        <h2>SOUTHERN BASE</h2>
+        <p>Gothic Youth Culture Collection</p>
+      </div>
+      <div id="canvas-container"></div>
+      <div class="3d-instruction">Geser untuk memutar tampilan 3D</div>
+    </div>
 
-    <!-- Midtrans Snap Script -->
-    <script 
-      type="text/javascript"
-      src="https://app.sandbox.midtrans.com/snap/snap.js"
-      data-client-key="MASUKKAN_CLIENT_KEY_MIDTRANS_SANDBOX_KAMU">
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+    <!-- Bagian Kanan: Form Pembayaran -->
+    <div class="payment-section">
+      <h3>Ringkasan & Pembayaran</h3>
+      
+      <div class="order-summary">
+        <div class="item-info">
+          <span>1x Oversized Gothic Shirt & Cargo Set</span>
+          <strong>Rp 750.000</strong>
+        </div>
+      </div>
+
+      <form class="payment-form" onsubmit="event.preventDefault();">
+        <div class="form-group">
+          <label for="email">Alamat Email</label>
+          <input type="email" id="email" placeholder="nama@email.com" required />
+        </div>
+
+        <div class="form-group">
+          <label for="name">Nama Lengkap</label>
+          <input type="text" id="name" placeholder="Nama Anda" required />
+        </div>
+
+        <div class="form-group">
+          <label for="method">Metode Pembayaran</label>
+          <select id="method" required>
+            <option value="">Pilih Metode Pembayaran</option>
+            <option value="qris">QRIS / GoPay / OVO</option>
+            <option value="va">Virtual Account Bank</option>
+            <option value="card">Kartu Kredit / Debit</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-pay">Bayar Sekarang</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
 </html>
