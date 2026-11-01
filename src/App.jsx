@@ -296,30 +296,45 @@ function App() {
 
   const isAdmin = user?.role === "admin";
 
+  // --- LOGIKA PENJARINGAN DATA PENYESUAIAN NAMA TERVERIFIKASI ---
   const myTransaksi = transaksi.filter((item) => {
-    const payer = (item.payer_name || item.keterangan || "").toLowerCase();
-    return payer.includes((user?.name || "").toLowerCase());
+    if (!user?.name) return false;
+    const currentUserName = user.name.toLowerCase().trim();
+    const rawPayer = (item.payer_name || item.keterangan || "").toLowerCase();
+    const cleanPayer = rawPayer.split("-")[0].trim();
+    
+    return cleanPayer.includes(currentUserName) || currentUserName.includes(cleanPayer);
   });
 
   const totalIn = transaksi
-    .filter((t) => t.status === "settlement" || t.status === "lunas")
-    .reduce((acc, c) => acc + parseInt(c.amount || c.jumlah || 0), 0);
+    .filter((t) => {
+      const st = (t.status || "").toLowerCase();
+      return st === "settlement" || st === "lunas";
+    })
+    .reduce((acc, c) => acc + (parseInt(c.amount || c.jumlah || 0) || 0), 0);
 
-  const totalOut = kasKeluar.reduce((acc, c) => acc + parseInt(c.amount || 0), 0);
+  const totalOut = kasKeluar.reduce((acc, c) => acc + (parseInt(c.amount || 0) || 0), 0);
 
+  // --- HITUNG LOGIKA TOTAL KAS DIBAYAR UNTUK PORTAL ANGGOTA ---
   const totalVerifiedUser = myTransaksi
-    .filter((t) => t.status === "settlement" || t.status === "lunas")
-    .reduce((acc, c) => acc + parseInt(c.amount || c.jumlah || 0), 0);
+    .filter((t) => {
+      const st = (t.status || "").toLowerCase();
+      return st === "settlement" || st === "lunas";
+    })
+    .reduce((acc, c) => acc + (parseInt(c.amount || c.jumlah || 0) || 0), 0);
 
   const saldoBersih = totalIn - totalOut;
 
   const rekapPerPembayar = transaksi
-    .filter((item) => item.status === "settlement" || item.status === "lunas")
+    .filter((item) => {
+      const st = (item.status || "").toLowerCase();
+      return st === "settlement" || st === "lunas";
+    })
     .reduce((acc, curr) => {
       let rawName = curr.payer_name || curr.keterangan || "Anonim";
       let cleanName = rawName.split("-")[0].trim();
       if (!cleanName) cleanName = "Anonim";
-      acc[cleanName] = (acc[cleanName] || 0) + parseInt(curr.amount || curr.jumlah || 0);
+      acc[cleanName] = (acc[cleanName] || 0) + (parseInt(curr.amount || curr.jumlah || 0) || 0);
       return acc;
     }, {});
 
@@ -606,18 +621,18 @@ function App() {
                           myTransaksi.map((item) => (
                             <tr key={item.id} style={styles.tr}>
                               <td style={styles.tdMuted}>{item.transaction_date || "-"}</td>
-                              <td style={styles.tdGreen}>+Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}</td>
+                              <td style={styles.tdGreen}>+Rp {parseInt(item.amount || item.jumlah || 0).toLocaleString("id-ID")}</td>
                               <td style={styles.td}>
                                 <span style={
-                                  item.status === "settlement" || item.status === "lunas"
+                                  (item.status || "").toLowerCase() === "settlement" || (item.status || "").toLowerCase() === "lunas"
                                     ? styles.badgeSuccess
-                                    : item.status === "ditolak"
+                                    : (item.status || "").toLowerCase() === "ditolak"
                                     ? styles.badgeDanger
                                     : styles.badgePending
                                 }>
-                                  {item.status === "settlement" || item.status === "lunas"
+                                  {(item.status || "").toLowerCase() === "settlement" || (item.status || "").toLowerCase() === "lunas"
                                     ? "Disetujui"
-                                    : item.status === "ditolak"
+                                    : (item.status || "").toLowerCase() === "ditolak"
                                     ? "Ditolak"
                                     : "Menunggu"}
                                 </span>
@@ -926,18 +941,18 @@ function App() {
                             <tr key={item.id} style={styles.tr}>
                               <td style={styles.tdMuted}>{item.transaction_date || "-"}</td>
                               <td style={styles.tdWhite}>{item.payer_name || item.keterangan || "-"}</td>
-                              <td style={styles.tdGreen}>+Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}</td>
+                              <td style={styles.tdGreen}>+Rp {parseInt(item.amount || item.jumlah || 0).toLocaleString("id-ID")}</td>
                               <td style={styles.td}>
                                 <span style={
-                                  item.status === "settlement" || item.status === "lunas"
+                                  (item.status || "").toLowerCase() === "settlement" || (item.status || "").toLowerCase() === "lunas"
                                     ? styles.badgeSuccess
-                                    : item.status === "ditolak"
+                                    : (item.status || "").toLowerCase() === "ditolak"
                                     ? styles.badgeDanger
                                     : styles.badgePending
                                 }>
-                                  {item.status === "settlement" || item.status === "lunas"
+                                  {(item.status || "").toLowerCase() === "settlement" || (item.status || "").toLowerCase() === "lunas"
                                     ? "Disetujui"
-                                    : item.status === "ditolak"
+                                    : (item.status || "").toLowerCase() === "ditolak"
                                     ? "Ditolak"
                                     : "Menunggu"}
                                 </span>
@@ -949,7 +964,7 @@ function App() {
                                       Bukti
                                     </button>
                                   )}
-                                  {(item.status === "pending" || !item.status) && (
+                                  {((item.status || "").toLowerCase() === "pending" || !item.status) && (
                                     <>
                                       <button onClick={() => handleVerifikasi(item.id)} style={styles.btnApprove} className="btn-action">
                                         Setujui
