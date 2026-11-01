@@ -43,11 +43,6 @@ function InputForm({ onSuccess }) {
       return;
     }
 
-    if (!keterangan.trim()) {
-      setErrorMsg("Nama pembayar / keterangan wajib diisi.");
-      return;
-    }
-
     if (!buktiFile) {
       setErrorMsg("Wajib melampirkan foto bukti transfer untuk verifikasi.");
       return;
@@ -61,8 +56,10 @@ function InputForm({ onSuccess }) {
     setErrorMsg("");
 
     try {
-      const savedUser = JSON.parse(localStorage.getItem("user")) || {};
-      const officerName = savedUser.name || "Anggota Organisasi";
+      // PERBAIKAN 1: Ambil data pengguna dari sessionStorage (sesuai App.jsx)
+      const savedUser = JSON.parse(sessionStorage.getItem("user")) || {};
+      const currentUserName = savedUser.name || "Anggota";
+
       const numericAmount = parseInt(nominal) || 0;
 
       if (numericAmount <= 0) {
@@ -77,23 +74,28 @@ function InputForm({ onSuccess }) {
 
       const todayDate = new Date().toISOString().split("T")[0];
 
+      // PERBAIKAN 2: Format nama pembayar gabungan agar sesuai filter App.jsx (contoh: "irpan - Kas Bulan Ini")
+      const finalPayerName = keterangan.trim()
+        ? `${currentUserName} - ${keterangan.trim()}`
+        : currentUserName;
+
       const { error } = await supabase.from("transactions").insert([
         {
-          payer_name: keterangan,
+          payer_name: finalPayerName, // Selalu menyertakan nama user yang login
           amount: numericAmount,
           payment_method: "DANA",
           transaction_type: "income",
           transaction_date: todayDate,
-          officer_name: officerName,
+          officer_name: currentUserName,
           status: "pending",
-          description: base64Image // Menyimpan gambar ke kolom description
+          description: base64Image, // Gambar bukti transfer
         },
       ]);
 
       if (error) throw error;
 
       alert(
-        `Konfirmasi terkirim! Pembayaran dari ${keterangan} sebesar Rp ${numericAmount.toLocaleString(
+        `Konfirmasi terkirim! Pembayaran dari ${currentUserName} sebesar Rp ${numericAmount.toLocaleString(
           "id-ID"
         )} berhasil dikirim. Menunggu verifikasi admin.`
       );
@@ -376,14 +378,13 @@ function InputForm({ onSuccess }) {
 
             <div style={{ marginBottom: "14px" }}>
               <label style={{ display: "block", fontSize: "11px", color: "#a1a1aa", marginBottom: "6px", fontWeight: "600" }}>
-                Nama Pembayar / Keterangan
+                Catatan / Keterangan Pembayaran (Opsional)
               </label>
               <input
                 type="text"
-                placeholder="Contoh: Andi - Kas Bulan Ini"
+                placeholder="Contoh: Kas Bulan Mei"
                 value={keterangan}
                 onChange={(e) => setKeterangan(e.target.value)}
-                required
                 style={{
                   width: "100%",
                   padding: "10px 12px",
@@ -458,7 +459,7 @@ function InputForm({ onSuccess }) {
           )}
 
           <div style={{ fontSize: "12px", color: "#a1a1aa", marginBottom: "8px" }}>
-            <b style={{ color: "#f4f4f5" }}>Nama Pembayar:</b> {keterangan}
+            <b style={{ color: "#f4f4f5" }}>Keterangan:</b> {keterangan || "-"}
           </div>
           <div style={{ fontSize: "12px", color: "#a1a1aa", marginBottom: "8px" }}>
             <b style={{ color: "#f4f4f5" }}>Nominal Kas:</b> Rp {parseInt(nominal || 0).toLocaleString("id-ID")}
