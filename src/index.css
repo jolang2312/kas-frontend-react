@@ -1,11 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+html {
+  background-color: #030306;
+}
 
 body {
-  background-color: #09090b;
+  background-color: transparent;
   color: #f4f4f5;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   margin: 0;
@@ -13,7 +17,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Card Modern Matte (Bukan Glassmorphism AI Berlebihan) */
+/* Card Modern Matte */
 .card-matte {
   background: #121217;
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -25,7 +29,7 @@ body {
   border-color: rgba(255, 255, 255, 0.14);
 }
 
-/* Micro-Interactions Tombol (Responsif & Alami) */
+/* Micro-Interactions Tombol */
 button {
   transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease;
 }
