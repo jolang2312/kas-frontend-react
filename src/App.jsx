@@ -34,7 +34,9 @@ function App() {
   const [outAmount, setOutAmount] = useState("");
   const [outDate, setOutDate] = useState("");
 
-  const [filterDate, setFilterDate] = useState("");
+  // --- FILTER RENTANG TANGGAL (MULAI TANGGAL A - SAMPAI TANGGAL B) & NAMA ---
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
   const [filterMemberName, setFilterMemberName] = useState("");
 
   const [newUsername, setNewUsername] = useState("");
@@ -299,8 +301,35 @@ function App() {
 
   const isAdmin = user?.role === "admin";
 
-  // --- LOGIKA PENJARINGAN DATA PENYESUAIAN NAMA TERVERIFIKASI ---
-  const myTransaksi = transaksi.filter((item) => {
+  // Helper Cek Rentang Tanggal (Mulai Tanggal A - Sampai Tanggal B)
+  const isWithinDateRange = (rawDate, start, end) => {
+    if (!start && !end) return true;
+    if (!rawDate) return false;
+    const cleanDate = String(rawDate).slice(0, 10);
+    if (start && cleanDate < start) return false;
+    if (end && cleanDate > end) return false;
+    return true;
+  };
+
+  // Preset Cepat: Bulan Ini (Tanggal 1 s/d Hari Ini)
+  const handleSetBulanIni = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    setFilterStartDate(`${year}-${month}-01`);
+    setFilterEndDate(`${year}-${month}-${day}`);
+    showToast("Filter diterapkan: Bulan Ini");
+  };
+
+  const handleResetFilter = () => {
+    setFilterStartDate("");
+    setFilterEndDate("");
+    setFilterMemberName("");
+  };
+
+  // --- LOGIKA DATA ANGGOTA ---
+  const myTransaksiAll = transaksi.filter((item) => {
     if (!user?.name) return false;
     const currentUserName = user.name.toLowerCase().trim();
     const rawPayer = (item.payer_name || item.keterangan || "").toLowerCase();
@@ -312,6 +341,11 @@ function App() {
     );
   });
 
+  const myTransaksiFiltered = myTransaksiAll.filter((item) =>
+    isWithinDateRange(item.transaction_date, filterStartDate, filterEndDate)
+  );
+
+  // Total Keseluruhan (Untuk Kartu Saldo Utama di Layar)
   const totalIn = transaksi
     .filter((t) => {
       const st = (t.status || "").toLowerCase();
@@ -324,27 +358,83 @@ function App() {
     0
   );
 
-  // --- HITUNG LOGIKA TOTAL KAS DIBAYAR UNTUK PORTAL ANGGOTA ---
-  const totalVerifiedUser = myTransaksi
+  const saldoBersih = totalIn - totalOut;
+
+  const totalVerifiedUser = myTransaksiAll
     .filter((t) => {
       const st = (t.status || "").toLowerCase();
       return st === "settlement" || st === "lunas";
     })
     .reduce((acc, c) => acc + (parseInt(c.amount || c.jumlah || 0) || 0), 0);
 
-  const saldoBersih = totalIn - totalOut;
-
+  // --- DATA TERFILTER BERDASARKAN RENTANG TANGGAL A - B & NAMA (ADMIN) ---
   const filteredTransaksiAdmin = transaksi.filter((item) => {
-    const matchesDate = filterDate
-      ? item.transaction_date === filterDate
-      : true;
+    const matchesDateRange = isWithinDateRange(
+      item.transaction_date,
+      filterStartDate,
+      filterEndDate
+    );
     const matchesName = filterMemberName
-      ? (item.payer_name || "")
+      ? (item.payer_name || item.keterangan || "")
           .toLowerCase()
-          .includes(filterMemberName.toLowerCase())
+          .includes(filterMemberName.toLowerCase().trim())
       : true;
-    return matchesDate && matchesName;
+    return matchesDateRange && matchesName;
   });
+
+  const filteredKasKeluarAdmin = kasKeluar.filter((item) =>
+    isWithinDateRange(item.expense_date, filterStartDate, filterEndDate)
+  );
+
+  // Kalkulasi Khusus Periode Filter (Tampil di Ringkasan Cetak PDF & Info Filter)
+  const filteredTotalIn = filteredTransaksiAdmin
+    .filter((t) => {
+      const st = (t.status || "").toLowerCase();
+      return st === "settlement" || st === "lunas";
+    })
+    .reduce((acc, c) => acc + (parseInt(c.amount || c.jumlah || 0) || 0), 0);
+
+  const filteredTotalOut = filteredKasKeluarAdmin.reduce(
+    (acc, c) => acc + (parseInt(c.amount || 0) || 0),
+    0
+  );
+
+  const filteredSaldoBersih = filteredTotalIn - filteredTotalOut;
+
+  const hasActiveFilter = Boolean(
+    filterStartDate || filterEndDate || filterMemberName
+  );
+
+  const formatTanggalIndo = (dateStr) => {
+    if (!dateStr) return "";
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return dateStr;
+    const d = new Date(
+      Number(parts[0]),
+      Number(parts[1]) - 1,
+      Number(parts[2])
+    );
+    return d.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const labelPeriodeCetak = () => {
+    if (filterStartDate && filterEndDate) {
+      return `${formatTanggalIndo(filterStartDate)} s/d ${formatTanggalIndo(
+        filterEndDate
+      )}`;
+    }
+    if (filterStartDate) {
+      return `Mulai ${formatTanggalIndo(filterStartDate)}`;
+    }
+    if (filterEndDate) {
+      return `Sampai ${formatTanggalIndo(filterEndDate)}`;
+    }
+    return "Semua Periode";
+  };
 
   const handlePrintReport = () => {
     window.print();
@@ -362,7 +452,7 @@ function App() {
         body, html {
           margin: 0;
           padding: 0;
-          background: #030305;
+          background: #030306;
         }
 
         @keyframes loginFloatUp {
@@ -440,7 +530,7 @@ function App() {
         @media print {
           @page {
             size: A4 portrait;
-            margin: 18mm 15mm;
+            margin: 16mm 14mm;
           }
 
           body, html, div, main {
@@ -464,14 +554,14 @@ function App() {
             justify-content: space-between !important;
             border-bottom: 2.5px solid #111827 !important;
             padding-bottom: 12px !important;
-            margin-bottom: 18px !important;
+            margin-bottom: 16px !important;
           }
 
           .print-summary-box {
             display: grid !important;
             grid-template-columns: repeat(3, 1fr) !important;
             gap: 10px !important;
-            margin-bottom: 22px !important;
+            margin-bottom: 20px !important;
           }
 
           .print-summary-item {
@@ -488,7 +578,7 @@ function App() {
             transform: none !important;
             border: none !important;
             padding: 0 !important;
-            margin-bottom: 24px !important;
+            margin-bottom: 22px !important;
             background: #ffffff !important;
           }
 
@@ -556,7 +646,7 @@ function App() {
           .print-signature {
             display: flex !important;
             justify-content: flex-end !important;
-            margin-top: 32px !important;
+            margin-top: 28px !important;
             page-break-inside: avoid !important;
           }
         }
@@ -677,7 +767,7 @@ function App() {
         <div style={{ position: "relative", zIndex: 10 }}>
           <Background3D role={user.role} isLogin={false} />
 
-          {/* BARIS NAVBAR HEADER TERPISAH (POSISI UTAMA) */}
+          {/* NAVBAR HEADER */}
           <header style={styles.navbarSticky} className="no-print">
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <img
@@ -745,27 +835,26 @@ function App() {
               </div>
               <div style={{ textAlign: "right", fontSize: "11px" }}>
                 <div>
-                  <strong>Tanggal Cetak:</strong> {tanggalCetak}
+                  <strong>Periode Laporan:</strong> {labelPeriodeCetak()}
                 </div>
-                <div>
-                  <strong>Dicetak Oleh:</strong> {user.name} (
-                  {isAdmin ? "Admin" : "Anggota"})
-                </div>
-                {(filterDate || filterMemberName) && (
+                {filterMemberName && (
                   <div>
-                    <strong>Filter:</strong> {filterDate || "Semua Tanggal"}
-                    {filterMemberName ? ` | ${filterMemberName}` : ""}
+                    <strong>Filter Anggota:</strong> {filterMemberName}
                   </div>
                 )}
+                <div>
+                  <strong>Tanggal Cetak:</strong> {tanggalCetak} (Oleh:{" "}
+                  {user.name})
+                </div>
               </div>
             </div>
 
-            {/* RINGKASAN KEUANGAN KHUSUS CETAK PDF (ADMIN) */}
+            {/* RINGKASAN KEUANGAN KHUSUS CETAK PDF (SESUAI FILTER TANGGAL A - B) */}
             {isAdmin && (
               <div className="print-only print-summary-box">
                 <div className="print-summary-item">
                   <div style={{ fontSize: "10px", fontWeight: "600" }}>
-                    TOTAL PEMASUKAN (LUNAS)
+                    PEMASUKAN DISETUJUI ({hasActiveFilter ? "PERIODE FILTER" : "TOTAL"})
                   </div>
                   <div
                     style={{
@@ -774,12 +863,12 @@ function App() {
                       marginTop: "4px",
                     }}
                   >
-                    +Rp {totalIn.toLocaleString("id-ID")}
+                    +Rp {filteredTotalIn.toLocaleString("id-ID")}
                   </div>
                 </div>
                 <div className="print-summary-item">
                   <div style={{ fontSize: "10px", fontWeight: "600" }}>
-                    TOTAL PENGELUARAN
+                    PENGELUARAN KAS ({hasActiveFilter ? "PERIODE FILTER" : "TOTAL"})
                   </div>
                   <div
                     style={{
@@ -788,12 +877,12 @@ function App() {
                       marginTop: "4px",
                     }}
                   >
-                    -Rp {totalOut.toLocaleString("id-ID")}
+                    -Rp {filteredTotalOut.toLocaleString("id-ID")}
                   </div>
                 </div>
                 <div className="print-summary-item">
                   <div style={{ fontSize: "10px", fontWeight: "600" }}>
-                    SALDO BERSIH KAS
+                    SELISIH / SALDO BERSIH
                   </div>
                   <div
                     style={{
@@ -802,7 +891,7 @@ function App() {
                       marginTop: "4px",
                     }}
                   >
-                    Rp {saldoBersih.toLocaleString("id-ID")}
+                    Rp {filteredSaldoBersih.toLocaleString("id-ID")}
                   </div>
                 </div>
               </div>
@@ -812,7 +901,7 @@ function App() {
             <div style={styles.heroGrid} className="no-print">
               <div style={styles.card} className="login-card-animated">
                 <span style={styles.cardHeaderLabel}>
-                  {isAdmin ? "TOTAL SALDO BERSIH" : "TOTAL KAS DIBAYAR"}
+                  {isAdmin ? "TOTAL SALDO BERSIH KESELURUHAN" : "TOTAL KAS DIBAYAR"}
                 </span>
                 <h1 style={styles.statNumber}>
                   Rp{" "}
@@ -845,7 +934,7 @@ function App() {
                 )}
               </div>
 
-              {/* KARTU PENGATURAN KREDENSIAL DENGAN TOMBOL LOGOUT CADANGAN */}
+              {/* KARTU PENGATURAN KREDENSIAL */}
               <div
                 style={styles.card}
                 className="no-print login-card-animated"
@@ -908,6 +997,7 @@ function App() {
               </div>
             </div>
 
+            {/* PORTAL ANGGOTA */}
             {!isAdmin && (
               <div
                 style={{
@@ -926,7 +1016,78 @@ function App() {
                 </div>
 
                 <div style={styles.card} className="login-card-animated">
-                  <h3 style={styles.cardTitle}>Riwayat Pembayaran Saya</h3>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: "8px",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    <h3 style={{ ...styles.cardTitle, margin: 0 }}>
+                      Riwayat Pembayaran Saya
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={handlePrintReport}
+                      style={{ ...styles.btnEdit, background: "#16a34a" }}
+                      className="btn-action no-print"
+                    >
+                      🖨️ Cetak PDF
+                    </button>
+                  </div>
+
+                  {/* Filter Rentang Tanggal A - B untuk Anggota */}
+                  <div style={styles.subFormContainer} className="no-print">
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr auto",
+                        gap: "8px",
+                        alignItems: "end",
+                      }}
+                    >
+                      <div>
+                        <label style={{ ...styles.label, marginBottom: "4px" }}>
+                          Dari Tanggal (A):
+                        </label>
+                        <input
+                          type="date"
+                          value={filterStartDate}
+                          onChange={(e) => setFilterStartDate(e.target.value)}
+                          style={{ ...styles.inputSm, colorScheme: "dark" }}
+                          className="form-field"
+                        />
+                      </div>
+                      <div>
+                        <label style={{ ...styles.label, marginBottom: "4px" }}>
+                          Sampai Tanggal (B):
+                        </label>
+                        <input
+                          type="date"
+                          value={filterEndDate}
+                          onChange={(e) => setFilterEndDate(e.target.value)}
+                          style={{ ...styles.inputSm, colorScheme: "dark" }}
+                          className="form-field"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleResetFilter}
+                        style={{
+                          ...styles.btnEdit,
+                          background: "#27272a",
+                          height: "30px",
+                        }}
+                        className="btn-action"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+
                   <div style={{ overflowX: "auto" }}>
                     <table style={styles.table}>
                       <thead>
@@ -943,14 +1104,14 @@ function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {myTransaksi.length === 0 ? (
+                        {myTransaksiFiltered.length === 0 ? (
                           <tr>
                             <td colSpan="4" style={styles.tdEmpty}>
-                              Belum ada riwayat transaksi.
+                              Belum ada riwayat transaksi pada periode ini.
                             </td>
                           </tr>
                         ) : (
-                          myTransaksi.map((item) => (
+                          myTransaksiFiltered.map((item) => (
                             <tr key={item.id} style={styles.tr}>
                               <td style={styles.tdMuted}>
                                 {item.transaction_date || "-"}
@@ -1012,8 +1173,161 @@ function App() {
               </div>
             )}
 
+            {/* PORTAL ADMIN */}
             {isAdmin && (
               <>
+                {/* PANEL FILTER PERIODE TANGGAL A - B & CETAK LAPORAN PDF */}
+                <div
+                  style={{
+                    ...styles.card,
+                    marginTop: "16px",
+                    border: "1px solid rgba(59, 130, 246, 0.35)",
+                  }}
+                  className="no-print login-card-animated"
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: "10px",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ ...styles.cardTitle, margin: 0 }}>
+                        Filter Periode Laporan & Cetak PDF
+                      </h3>
+                      <span style={{ fontSize: "11px", color: "#a1a1aa" }}>
+                        Pilih rentang tanggal mulai (A) hingga tanggal akhir (B)
+                        untuk menyaring pemasukan, pengeluaran, dan hasil cetak PDF.
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        onClick={handleSetBulanIni}
+                        style={{ ...styles.btnEdit, background: "#0284c7" }}
+                        className="btn-action"
+                      >
+                        📅 Bulan Ini
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleResetFilter}
+                        style={{ ...styles.btnEdit, background: "#27272a" }}
+                        className="btn-action"
+                      >
+                        Reset Filter
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handlePrintReport}
+                        style={{
+                          ...styles.btnEdit,
+                          background: "#16a34a",
+                          fontWeight: "600",
+                          padding: "6px 12px",
+                        }}
+                        className="btn-action"
+                      >
+                        🖨️ Cetak Laporan PDF
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ ...styles.subFormContainer, marginBottom: 0 }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(180px, 1fr))",
+                        gap: "10px",
+                      }}
+                    >
+                      <div>
+                        <label style={{ ...styles.label, marginBottom: "4px" }}>
+                          Dari Tanggal (A):
+                        </label>
+                        <input
+                          type="date"
+                          value={filterStartDate}
+                          onChange={(e) => setFilterStartDate(e.target.value)}
+                          style={{ ...styles.inputSm, colorScheme: "dark" }}
+                          className="form-field"
+                        />
+                      </div>
+                      <div>
+                        <label style={{ ...styles.label, marginBottom: "4px" }}>
+                          Sampai Tanggal (B):
+                        </label>
+                        <input
+                          type="date"
+                          value={filterEndDate}
+                          onChange={(e) => setFilterEndDate(e.target.value)}
+                          style={{ ...styles.inputSm, colorScheme: "dark" }}
+                          className="form-field"
+                        />
+                      </div>
+                      <div>
+                        <label style={{ ...styles.label, marginBottom: "4px" }}>
+                          Cari Nama Anggota (Opsional):
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ketik nama anggota..."
+                          value={filterMemberName}
+                          onChange={(e) => setFilterMemberName(e.target.value)}
+                          style={styles.inputSm}
+                          className="form-field"
+                        />
+                      </div>
+                    </div>
+
+                    {hasActiveFilter && (
+                      <div
+                        style={{
+                          marginTop: "10px",
+                          paddingTop: "8px",
+                          borderTop: "1px solid rgba(255,255,255,0.08)",
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "16px",
+                          fontSize: "11px",
+                          color: "#d4d4d8",
+                        }}
+                      >
+                        <span>
+                          Periode Aktif: <strong>{labelPeriodeCetak()}</strong>
+                        </span>
+                        <span>
+                          Pemasukan Periode:{" "}
+                          <strong style={{ color: "#22c55e" }}>
+                            +Rp {filteredTotalIn.toLocaleString("id-ID")}
+                          </strong>
+                        </span>
+                        <span>
+                          Pengeluaran Periode:{" "}
+                          <strong style={{ color: "#ef4444" }}>
+                            -Rp {filteredTotalOut.toLocaleString("id-ID")}
+                          </strong>
+                        </span>
+                        <span>
+                          Selisih:{" "}
+                          <strong style={{ color: "#60a5fa" }}>
+                            Rp {filteredSaldoBersih.toLocaleString("id-ID")}
+                          </strong>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* KELOLA ANGGOTA (TIDAK IKUT TERCETAK DI LAPORAN KEUANGAN PDF) */}
                 <div
                   style={{ ...styles.card, marginTop: "16px" }}
                   className="no-print login-card-animated"
@@ -1191,11 +1505,15 @@ function App() {
                   </div>
                 </div>
 
+                {/* RINCIAN PENGELUARAN KAS (TERFILTER TANGGAL A - B) */}
                 <div
                   style={{ ...styles.card, marginTop: "16px" }}
                   className="login-card-animated"
                 >
-                  <h3 style={styles.cardTitle}>Rincian Pengeluaran Kas</h3>
+                  <h3 style={styles.cardTitle}>
+                    Rincian Pengeluaran Kas{" "}
+                    {hasActiveFilter ? `(${labelPeriodeCetak()})` : ""}
+                  </h3>
 
                   <form
                     onSubmit={handleTambahKasKeluar}
@@ -1257,14 +1575,14 @@ function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {kasKeluar.length === 0 ? (
+                        {filteredKasKeluarAdmin.length === 0 ? (
                           <tr>
                             <td colSpan="3" style={styles.tdEmpty}>
-                              Belum ada data pengeluaran.
+                              Belum ada data pengeluaran pada periode ini.
                             </td>
                           </tr>
                         ) : (
-                          kasKeluar.map((item) => (
+                          filteredKasKeluarAdmin.map((item) => (
                             <tr key={item.id} style={styles.tr}>
                               <td style={styles.tdMuted}>
                                 {item.expense_date || "-"}
@@ -1291,6 +1609,7 @@ function App() {
                   </div>
                 </div>
 
+                {/* RINCIAN PEMBAYARAN MASUK (TERFILTER TANGGAL A - B & NAMA) */}
                 <div
                   style={{ ...styles.card, marginTop: "16px" }}
                   className="login-card-animated"
@@ -1306,71 +1625,18 @@ function App() {
                     }}
                   >
                     <h3 style={{ ...styles.cardTitle, margin: 0 }}>
-                      Rincian Pembayaran Masuk
+                      Rincian Pembayaran Masuk{" "}
+                      {hasActiveFilter ? `(${labelPeriodeCetak()})` : ""}
                     </h3>
 
-                    <div
-                      style={{ display: "flex", gap: "8px" }}
-                      className="no-print"
+                    <button
+                      type="button"
+                      onClick={handlePrintReport}
+                      style={{ ...styles.btnEdit, background: "#16a34a" }}
+                      className="btn-action no-print"
                     >
-                      <button
-                        type="button"
-                        onClick={handlePrintReport}
-                        style={{ ...styles.btnEdit, background: "#16a34a" }}
-                        className="btn-action"
-                      >
-                        🖨️ Cetak Laporan PDF
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFilterDate("");
-                          setFilterMemberName("");
-                        }}
-                        style={{ ...styles.btnEdit, background: "#27272a" }}
-                        className="btn-action"
-                      >
-                        Reset Filter
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={styles.subFormContainer} className="no-print">
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(180px, 1fr))",
-                        gap: "8px",
-                      }}
-                    >
-                      <div>
-                        <label style={{ ...styles.label, marginBottom: "4px" }}>
-                          Tanggal:
-                        </label>
-                        <input
-                          type="date"
-                          value={filterDate}
-                          onChange={(e) => setFilterDate(e.target.value)}
-                          style={{ ...styles.inputSm, colorScheme: "dark" }}
-                          className="form-field"
-                        />
-                      </div>
-                      <div>
-                        <label style={{ ...styles.label, marginBottom: "4px" }}>
-                          Nama Anggota:
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Cari anggota..."
-                          value={filterMemberName}
-                          onChange={(e) => setFilterMemberName(e.target.value)}
-                          style={styles.inputSm}
-                          className="form-field"
-                        />
-                      </div>
-                    </div>
+                      🖨️ Cetak Laporan PDF
+                    </button>
                   </div>
 
                   <div style={{ overflowX: "auto" }}>
@@ -1393,7 +1659,7 @@ function App() {
                         {filteredTransaksiAdmin.length === 0 ? (
                           <tr>
                             <td colSpan="5" style={styles.tdEmpty}>
-                              Tidak ada data ditemukan.
+                              Tidak ada data pembayaran pada periode ini.
                             </td>
                           </tr>
                         ) : (
@@ -1494,7 +1760,13 @@ function App() {
 
                 {/* KOLOM TANDA TANGAN KHUSUS CETAK PDF */}
                 <div className="print-only print-signature">
-                  <div style={{ textAlign: "center", width: "220px", fontSize: "11px" }}>
+                  <div
+                    style={{
+                      textAlign: "center",
+                      width: "220px",
+                      fontSize: "11px",
+                    }}
+                  >
                     <div>Mengetahui,</div>
                     <div style={{ fontWeight: "700", marginTop: "2px" }}>
                       Bendahara / Admin Southern Base
@@ -1550,7 +1822,7 @@ const styles = {
     padding: "16px",
   },
   loginCard: {
-    background: "rgba(15, 15, 20, 0.68)",
+    background: "rgba(15, 15, 20, 0.65)",
     backdropFilter: "blur(16px)",
     WebkitBackdropFilter: "blur(16px)",
     border: "1px solid rgba(255, 255, 255, 0.12)",
