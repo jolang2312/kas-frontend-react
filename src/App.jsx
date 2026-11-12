@@ -359,6 +359,12 @@ function App() {
   return (
     <div style={styles.appWrapper}>
       <style>{`
+        body, html {
+          margin: 0;
+          padding: 0;
+          background: #030305;
+        }
+
         @keyframes loginFloatUp {
           0% {
             opacity: 0;
@@ -441,6 +447,7 @@ function App() {
             background: #ffffff !important;
             color: #111827 !important;
             box-shadow: none !important;
+            backdrop-filter: none !important;
           }
 
           header, button, form, input, select, canvas, .no-print {
@@ -591,7 +598,7 @@ function App() {
 
       {!user ? (
         <div style={styles.loginContainer}>
-          <Background3D role="anggota" />
+          <Background3D role="anggota" isLogin={true} />
           <div
             style={{ ...styles.loginCard, position: "relative", zIndex: 1 }}
             className="login-card-animated"
@@ -668,7 +675,7 @@ function App() {
         </div>
       ) : (
         <div style={{ position: "relative", zIndex: 10 }}>
-          <Background3D role={user.role} />
+          <Background3D role={user.role} isLogin={false} />
 
           {/* BARIS NAVBAR HEADER TERPISAH (POSISI UTAMA) */}
           <header style={styles.navbarSticky} className="no-print">
@@ -1518,7 +1525,7 @@ const styles = {
     minHeight: "100vh",
     position: "relative",
     color: "#f4f4f5",
-    background: "#09090b",
+    background: "transparent",
     fontFamily:
       "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
@@ -1526,9 +1533,10 @@ const styles = {
     position: "fixed",
     bottom: "20px",
     right: "20px",
-    background: "#27272a",
+    background: "rgba(24, 24, 27, 0.9)",
+    backdropFilter: "blur(12px)",
     color: "#f4f4f5",
-    border: "1px solid #3f3f46",
+    border: "1px solid rgba(255, 255, 255, 0.15)",
     padding: "10px 16px",
     borderRadius: "8px",
     fontSize: "12px",
@@ -1542,12 +1550,15 @@ const styles = {
     padding: "16px",
   },
   loginCard: {
-    background: "#18181b",
-    border: "1px solid #27272a",
-    borderRadius: "12px",
+    background: "rgba(15, 15, 20, 0.68)",
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    border: "1px solid rgba(255, 255, 255, 0.12)",
+    borderRadius: "16px",
     padding: "24px",
     width: "100%",
-    maxWidth: "340px",
+    maxWidth: "350px",
+    boxShadow: "0 20px 50px rgba(0, 0, 0, 0.75)",
   },
   loginTitle: {
     fontSize: "16px",
@@ -1555,7 +1566,7 @@ const styles = {
     color: "#f4f4f5",
     margin: "10px 0 2px 0",
   },
-  loginSub: { fontSize: "12px", color: "#71717a", margin: 0 },
+  loginSub: { fontSize: "12px", color: "#a1a1aa", margin: 0 },
   label: {
     display: "block",
     fontSize: "11px",
@@ -1566,8 +1577,8 @@ const styles = {
   input: {
     width: "100%",
     padding: "9px 12px",
-    background: "#09090b",
-    border: "1px solid #27272a",
+    background: "rgba(9, 9, 11, 0.75)",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
     color: "#f4f4f5",
     borderRadius: "6px",
     boxSizing: "border-box",
@@ -1575,8 +1586,8 @@ const styles = {
   },
   inputSm: {
     padding: "6px 10px",
-    background: "#09090b",
-    border: "1px solid #27272a",
+    background: "rgba(9, 9, 11, 0.75)",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
     color: "#f4f4f5",
     borderRadius: "6px",
     fontSize: "12px",
@@ -1603,7 +1614,7 @@ const styles = {
     fontSize: "13px",
   },
   errorBox: {
-    background: "#271012",
+    background: "rgba(127, 29, 29, 0.35)",
     border: "1px solid #7f1d1d",
     color: "#fca5a5",
     padding: "8px 12px",
@@ -1619,19 +1630,21 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    background: "#18181b",
-    borderBottom: "1px solid #27272a",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
+    background: "rgba(15, 15, 20, 0.75)",
+    backdropFilter: "blur(14px)",
+    WebkitBackdropFilter: "blur(14px)",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.5)",
   },
   navTitle: { fontWeight: "600", fontSize: "13px", color: "#f4f4f5" },
   userBadge: {
     display: "flex",
     alignItems: "center",
     gap: "8px",
-    background: "#09090b",
+    background: "rgba(9, 9, 11, 0.7)",
     padding: "4px 8px",
     borderRadius: "6px",
-    border: "1px solid #27272a",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
   },
   badgeAdmin: {
     background: "#2563eb",
@@ -1665,12 +1678,15 @@ const styles = {
     gap: "16px",
   },
   card: {
-    background: "#18181b",
-    border: "1px solid #27272a",
-    borderRadius: "10px",
+    background: "rgba(18, 18, 23, 0.75)",
+    backdropFilter: "blur(14px)",
+    WebkitBackdropFilter: "blur(14px)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
+    borderRadius: "12px",
     padding: "16px",
+    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
   },
-  cardHeaderLabel: { fontSize: "11px", fontWeight: "600", color: "#71717a" },
+  cardHeaderLabel: { fontSize: "11px", fontWeight: "600", color: "#a1a1aa" },
   statNumber: {
     fontSize: "26px",
     color: "#22c55e",
@@ -1686,10 +1702,10 @@ const styles = {
   },
   subFormContainer: {
     marginBottom: "14px",
-    background: "#09090b",
+    background: "rgba(9, 9, 11, 0.65)",
     padding: "10px",
     borderRadius: "6px",
-    border: "1px solid #27272a",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
   },
   btnSaveSm: {
     background: "#16a34a",
@@ -1716,33 +1732,33 @@ const styles = {
   th: {
     textAlign: "left",
     padding: "8px 6px",
-    color: "#71717a",
+    color: "#a1a1aa",
     fontSize: "11px",
-    borderBottom: "1px solid #27272a",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
     fontWeight: "600",
   },
-  tr: { borderBottom: "1px solid #27272a" },
+  tr: { borderBottom: "1px solid rgba(255, 255, 255, 0.06)" },
   td: { padding: "8px 6px" },
-  tdMuted: { padding: "8px 6px", color: "#71717a" },
+  tdMuted: { padding: "8px 6px", color: "#a1a1aa" },
   tdWhite: { padding: "8px 6px", color: "#f4f4f5" },
   tdGreen: { padding: "8px 6px", color: "#22c55e", fontWeight: "600" },
-  tdEmpty: { padding: "16px", textAlign: "center", color: "#71717a" },
+  tdEmpty: { padding: "16px", textAlign: "center", color: "#a1a1aa" },
   badgeSuccess: {
-    background: "rgba(34, 197, 94, 0.1)",
+    background: "rgba(34, 197, 94, 0.15)",
     color: "#22c55e",
     padding: "2px 6px",
     borderRadius: "4px",
     fontSize: "10px",
   },
   badgeDanger: {
-    background: "rgba(239, 68, 68, 0.1)",
+    background: "rgba(239, 68, 68, 0.15)",
     color: "#ef4444",
     padding: "2px 6px",
     borderRadius: "4px",
     fontSize: "10px",
   },
   badgePending: {
-    background: "rgba(234, 179, 8, 0.1)",
+    background: "rgba(234, 179, 8, 0.15)",
     color: "#eab308",
     padding: "2px 6px",
     borderRadius: "4px",
@@ -1782,6 +1798,7 @@ const styles = {
     width: "100vw",
     height: "100vh",
     background: "rgba(0,0,0,0.8)",
+    backdropFilter: "blur(6px)",
     zIndex: 9999,
     display: "flex",
     alignItems: "center",
@@ -1789,8 +1806,8 @@ const styles = {
     padding: "16px",
   },
   modalContent: {
-    background: "#18181b",
-    border: "1px solid #27272a",
+    background: "rgba(24, 24, 27, 0.92)",
+    border: "1px solid rgba(255, 255, 255, 0.12)",
     borderRadius: "10px",
     padding: "16px",
     maxWidth: "400px",
