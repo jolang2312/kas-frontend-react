@@ -32,14 +32,28 @@ function InputForm({ onSuccess }) {
     });
   };
 
+  // Validasi real-time untuk input nominal
+  const handleNominalChange = (e) => {
+    let rawValue = e.target.value.replace(/[^0-9]/g, ""); // Hanya izinkan angka
+    if (rawValue.startsWith("0")) {
+      rawValue = rawValue.substring(1); // Cegah awalan 0
+    }
+    setNominal(rawValue);
+  };
+
   const handleLanjutKonfirmasi = (e) => {
     e.preventDefault();
     setErrorMsg("");
 
     const numericAmount = parseInt(nominal) || 0;
 
-    if (numericAmount <= 0) {
-      setErrorMsg("Nominal pembayaran harus berupa angka dan lebih dari 0.");
+    if (numericAmount < 10000) {
+      setErrorMsg("Minimal pembayaran adalah Rp 10.000.");
+      return;
+    }
+
+    if (numericAmount % 1000 !== 0) {
+      setErrorMsg("Nominal harus dalam kelipatan Rp 1.000 (Contoh: 15000, 20000).");
       return;
     }
 
@@ -56,7 +70,6 @@ function InputForm({ onSuccess }) {
     setErrorMsg("");
 
     try {
-      // PERBAIKAN 1: Ambil data pengguna dari sessionStorage (sesuai App.jsx)
       const savedUser = JSON.parse(sessionStorage.getItem("user")) || {};
       const currentUserName = savedUser.name || "Anggota";
 
@@ -66,7 +79,6 @@ function InputForm({ onSuccess }) {
         throw new Error("Nominal tidak valid.");
       }
 
-      // Convert gambar screenshot ke base64
       let base64Image = "";
       if (buktiFile) {
         base64Image = await convertToBase64(buktiFile);
@@ -74,21 +86,21 @@ function InputForm({ onSuccess }) {
 
       const todayDate = new Date().toISOString().split("T")[0];
 
-      // PERBAIKAN 2: Format nama pembayar gabungan agar sesuai filter App.jsx (contoh: "irpan - Kas Bulan Ini")
+      // PERBAIKAN: Gunakan spasi aman, hindari karakter pindah baris
       const finalPayerName = keterangan.trim()
         ? `${currentUserName} - ${keterangan.trim()}`
         : currentUserName;
 
       const { error } = await supabase.from("transactions").insert([
         {
-          payer_name: finalPayerName, // Selalu menyertakan nama user yang login
+          payer_name: finalPayerName,
           amount: numericAmount,
           payment_method: "DANA",
           transaction_type: "income",
           transaction_date: todayDate,
           officer_name: currentUserName,
           status: "pending",
-          description: base64Image, // Gambar bukti transfer
+          description: base64Image,
         },
       ]);
 
@@ -116,7 +128,6 @@ function InputForm({ onSuccess }) {
 
   return (
     <div>
-      {/* MODAL ZOOM POPUP QRIS */}
       {showZoom && !imgError && (
         <div
           onClick={() => setShowZoom(false)}
@@ -358,20 +369,24 @@ function InputForm({ onSuccess }) {
                 Nominal Kustom (Rp)
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={nominal}
-                onChange={(e) => setNominal(e.target.value)}
+                onChange={handleNominalChange}
                 required
+                placeholder="Contoh: 20000"
                 style={{
                   width: "100%",
                   padding: "10px 12px",
-                  background: "#18181b",
-                  border: "1px solid #27272a",
-                  color: "#f4f4f5",
+                  background: "#111111",
+                  border: "1px solid #333",
+                  color: "#ffffff",
                   borderRadius: "8px",
                   boxSizing: "border-box",
                   outline: "none",
-                  fontSize: "13px",
+                  fontSize: "15px",
+                  fontWeight: "600",
+                  letterSpacing: "1px",
                 }}
               />
             </div>
