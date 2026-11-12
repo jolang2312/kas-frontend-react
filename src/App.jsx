@@ -367,6 +367,13 @@ function App() {
     })
     .reduce((acc, c) => acc + (parseInt(c.amount || c.jumlah || 0) || 0), 0);
 
+  const myFilteredVerifiedUser = myTransaksiFiltered
+    .filter((t) => {
+      const st = (t.status || "").toLowerCase();
+      return st === "settlement" || st === "lunas";
+    })
+    .reduce((acc, c) => acc + (parseInt(c.amount || c.jumlah || 0) || 0), 0);
+
   // --- DATA TERFILTER BERDASARKAN RENTANG TANGGAL A - B & NAMA (ADMIN) ---
   const filteredTransaksiAdmin = transaksi.filter((item) => {
     const matchesDateRange = isWithinDateRange(
@@ -386,7 +393,7 @@ function App() {
     isWithinDateRange(item.expense_date, filterStartDate, filterEndDate)
   );
 
-  // Kalkulasi Khusus Periode Filter (Tampil di Ringkasan Cetak PDF & Info Filter)
+  // Kalkulasi Khusus Periode Filter
   const filteredTotalIn = filteredTransaksiAdmin
     .filter((t) => {
       const st = (t.status || "").toLowerCase();
@@ -434,6 +441,13 @@ function App() {
       return `Sampai ${formatTanggalIndo(filterEndDate)}`;
     }
     return "Semua Periode";
+  };
+
+  const formatStatusLabel = (status) => {
+    const st = (status || "").toLowerCase();
+    if (st === "settlement" || st === "lunas") return "Disetujui";
+    if (st === "ditolak") return "Ditolak";
+    return "Menunggu";
   };
 
   const handlePrintReport = () => {
@@ -523,29 +537,43 @@ function App() {
           transform: translateY(0) scale(0.98);
         }
 
-        .print-only {
+        #print-area {
           display: none;
         }
 
         @media print {
           @page {
             size: A4 portrait;
-            margin: 16mm 14mm;
+            margin: 15mm 14mm;
           }
 
-          body, html, div, main {
+          html, body {
             background: #ffffff !important;
             color: #111827 !important;
-            box-shadow: none !important;
-            backdrop-filter: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
           }
 
-          header, button, form, input, select, canvas, .no-print {
+          .screen-only, .no-print, canvas {
             display: none !important;
           }
 
-          .print-only {
+          #print-area {
             display: block !important;
+            position: static !important;
+            width: 100% !important;
+            background: #ffffff !important;
+            color: #111827 !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            font-size: 11px !important;
+            line-height: 1.4 !important;
+          }
+
+          #print-area * {
+            box-sizing: border-box !important;
+            color: #111827 !important;
           }
 
           .print-header-box {
@@ -569,78 +597,56 @@ function App() {
             border-radius: 6px !important;
             padding: 10px 12px !important;
             background: #f9fafb !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
 
-          .login-card-animated {
-            animation: none !important;
-            transform: none !important;
-            border: none !important;
-            padding: 0 !important;
-            margin-bottom: 22px !important;
-            background: #ffffff !important;
-          }
-
-          h1, h2, h3, h4, p, span, strong, b {
-            color: #111827 !important;
-          }
-
-          h3 {
-            font-size: 13px !important;
+          .print-section-title {
+            font-size: 12px !important;
+            font-weight: 700 !important;
             text-transform: uppercase !important;
-            letter-spacing: 0.5px !important;
-            border-left: 3px solid #111827 !important;
+            letter-spacing: 0.4px !important;
+            border-left: 3.5px solid #111827 !important;
             padding-left: 8px !important;
-            margin-bottom: 8px !important;
+            margin: 16px 0 8px 0 !important;
           }
 
-          table {
+          .print-table {
             width: 100% !important;
             border-collapse: collapse !important;
-            margin-top: 6px !important;
-            margin-bottom: 16px !important;
+            margin-bottom: 18px !important;
             font-size: 11px !important;
           }
 
-          thead {
+          .print-table thead {
             display: table-header-group !important;
           }
 
-          tr {
+          .print-table tr {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
 
-          th {
+          .print-table th {
             background-color: #e5e7eb !important;
-            color: #111827 !important;
             border: 1px solid #6b7280 !important;
-            padding: 8px 10px !important;
+            padding: 7px 9px !important;
             font-weight: 700 !important;
+            text-align: left !important;
             text-transform: uppercase !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
 
-          td {
+          .print-table td {
             border: 1px solid #9ca3af !important;
-            padding: 7px 10px !important;
-            color: #111827 !important;
+            padding: 6px 9px !important;
           }
 
-          tbody tr:nth-child(even) td {
+          .print-table tbody tr:nth-child(even) td {
             background-color: #f9fafb !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-
-          span[style*="background: rgba"] {
-            background: transparent !important;
-            border: none !important;
-            padding: 0 !important;
-            font-weight: 700 !important;
-            color: #111827 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
 
           .print-signature {
@@ -648,213 +654,1078 @@ function App() {
             justify-content: flex-end !important;
             margin-top: 28px !important;
             page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         }
       `}</style>
 
-      {toastMsg && (
-        <div style={styles.toastContainer} className="no-print">
-          {toastMsg}
-        </div>
-      )}
+      {/* ==================== TAMPILAN LAYAR INTERAKTIF ==================== */}
+      <div className="screen-only">
+        {toastMsg && <div style={styles.toastContainer}>{toastMsg}</div>}
 
-      {selectedProof && (
-        <div
-          onClick={() => setSelectedProof(null)}
-          style={styles.modalOverlay}
-          className="no-print"
-        >
+        {selectedProof && (
           <div
-            onClick={(e) => e.stopPropagation()}
-            style={styles.modalContent}
-            className="login-card-animated"
+            onClick={() => setSelectedProof(null)}
+            style={styles.modalOverlay}
           >
-            <h4 style={styles.modalHeader}>Bukti Pembayaran</h4>
-            <img
-              src={selectedProof}
-              alt="Bukti Pembayaran"
-              style={styles.proofImg}
-            />
-            <button
-              onClick={() => setSelectedProof(null)}
-              style={styles.btnCloseModal}
-              className="btn-action"
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={styles.modalContent}
+              className="login-card-animated"
             >
-              Tutup
-            </button>
-          </div>
-        </div>
-      )}
-
-      {!user ? (
-        <div style={styles.loginContainer}>
-          <Background3D role="anggota" isLogin={true} />
-          <div
-            style={{ ...styles.loginCard, position: "relative", zIndex: 1 }}
-            className="login-card-animated"
-          >
-            <div style={{ textAlign: "center", marginBottom: "20px" }}>
+              <h4 style={styles.modalHeader}>Bukti Pembayaran</h4>
               <img
-                src={logoImg}
-                alt="Logo"
-                style={{ width: "72px", borderRadius: "10px" }}
-                className="logo-animated"
+                src={selectedProof}
+                alt="Bukti Pembayaran"
+                style={styles.proofImg}
               />
-              <h2 style={styles.loginTitle}>SOUTHERN BASE</h2>
-              <p style={styles.loginSub}>Sistem Informasi Kas Organisasi</p>
-            </div>
-
-            {loginError && (
-              <div style={styles.errorBox} className="shake-animated">
-                {loginError}
-              </div>
-            )}
-
-            <form onSubmit={handleLogin}>
-              <div style={{ marginBottom: "14px" }}>
-                <label style={styles.label}>Alamat Email</label>
-                <input
-                  type="email"
-                  placeholder="email@domain.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  style={styles.input}
-                  className="form-field"
-                />
-              </div>
-
-              <div style={{ marginBottom: "20px" }}>
-                <label style={styles.label}>Kata Sandi</label>
-                <div
-                  style={{
-                    position: "relative",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    style={{ ...styles.input, paddingRight: "40px" }}
-                    className="form-field"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={styles.btnEye}
-                  >
-                    {showPassword ? "👁️" : "🙈"}
-                  </button>
-                </div>
-              </div>
-
               <button
-                type="submit"
-                style={styles.btnLogin}
-                disabled={loadingLogin}
+                onClick={() => setSelectedProof(null)}
+                style={styles.btnCloseModal}
                 className="btn-action"
               >
-                {loadingLogin ? "Memeriksa Data..." : "Masuk"}
+                Tutup
               </button>
-            </form>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div style={{ position: "relative", zIndex: 10 }}>
-          <Background3D role={user.role} isLogin={false} />
+        )}
 
-          {/* NAVBAR HEADER */}
-          <header style={styles.navbarSticky} className="no-print">
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <img
-                src={logoImg}
-                alt="Logo"
-                style={{ height: "26px", borderRadius: "4px" }}
-              />
-              <span style={styles.navTitle}>
-                SOUTHERN BASE{" "}
-                {isAdmin ? "— MASTER CONTROL" : "— MEMBER PORTAL"}
-              </span>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div style={styles.userBadge}>
-                <span
-                  style={{
-                    fontSize: "12px",
-                    color: "#e4e4e7",
-                    fontWeight: "600",
-                  }}
-                >
-                  {user.name}
-                </span>
-                <span style={isAdmin ? styles.badgeAdmin : styles.badgeMember}>
-                  {user.role ? user.role.toUpperCase() : "MEMBER"}
-                </span>
-              </div>
-              <button
-                onClick={handleLogout}
-                style={styles.btnLogout}
-                className="btn-action"
-              >
-                🚪 Keluar
-              </button>
-            </div>
-          </header>
-
-          <main
-            style={{ maxWidth: "1040px", margin: "20px auto", padding: "0 16px" }}
-          >
-            {/* KOP SURAT KHUSUS CETAK PDF */}
-            <div className="print-only print-header-box">
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "12px" }}
-              >
+        {!user ? (
+          <div style={styles.loginContainer}>
+            <Background3D role="anggota" isLogin={true} />
+            <div
+              style={{ ...styles.loginCard, position: "relative", zIndex: 1 }}
+              className="login-card-animated"
+            >
+              <div style={{ textAlign: "center", marginBottom: "20px" }}>
                 <img
                   src={logoImg}
                   alt="Logo"
-                  style={{
-                    width: "48px",
-                    height: "48px",
-                    borderRadius: "6px",
-                    objectFit: "cover",
-                  }}
+                  style={{ width: "72px", borderRadius: "10px" }}
+                  className="logo-animated"
                 />
-                <div>
-                  <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "800" }}>
-                    SOUTHERN BASE
-                  </h2>
-                  <p style={{ margin: "2px 0 0 0", fontSize: "11px" }}>
-                    Laporan Rekapitulasi Keuangan & Kas Organisasi
-                  </p>
+                <h2 style={styles.loginTitle}>SOUTHERN BASE</h2>
+                <p style={styles.loginSub}>Sistem Informasi Kas Organisasi</p>
+              </div>
+
+              {loginError && (
+                <div style={styles.errorBox} className="shake-animated">
+                  {loginError}
+                </div>
+              )}
+
+              <form onSubmit={handleLogin}>
+                <div style={{ marginBottom: "14px" }}>
+                  <label style={styles.label}>Alamat Email</label>
+                  <input
+                    type="email"
+                    placeholder="email@domain.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    style={styles.input}
+                    className="form-field"
+                  />
+                </div>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={styles.label}>Kata Sandi</label>
+                  <div
+                    style={{
+                      position: "relative",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      style={{ ...styles.input, paddingRight: "40px" }}
+                      className="form-field"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={styles.btnEye}
+                    >
+                      {showPassword ? "👁️" : "🙈"}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  style={styles.btnLogin}
+                  disabled={loadingLogin}
+                  className="btn-action"
+                >
+                  {loadingLogin ? "Memeriksa Data..." : "Masuk"}
+                </button>
+              </form>
+            </div>
+          </div>
+        ) : (
+          <div style={{ position: "relative", zIndex: 10 }}>
+            <Background3D role={user.role} isLogin={false} />
+
+            {/* NAVBAR HEADER */}
+            <header style={styles.navbarSticky}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <img
+                  src={logoImg}
+                  alt="Logo"
+                  style={{ height: "26px", borderRadius: "4px" }}
+                />
+                <span style={styles.navTitle}>
+                  SOUTHERN BASE{" "}
+                  {isAdmin ? "— MASTER CONTROL" : "— MEMBER PORTAL"}
+                </span>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={styles.userBadge}>
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#e4e4e7",
+                      fontWeight: "600",
+                    }}
+                  >
+                    {user.name}
+                  </span>
+                  <span style={isAdmin ? styles.badgeAdmin : styles.badgeMember}>
+                    {user.role ? user.role.toUpperCase() : "MEMBER"}
+                  </span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  style={styles.btnLogout}
+                  className="btn-action"
+                >
+                  🚪 Keluar
+                </button>
+              </div>
+            </header>
+
+            <main
+              style={{
+                maxWidth: "1040px",
+                margin: "20px auto",
+                padding: "0 16px",
+              }}
+            >
+              {/* HERO GRID TAMPILAN LAYAR */}
+              <div style={styles.heroGrid}>
+                <div style={styles.card} className="login-card-animated">
+                  <span style={styles.cardHeaderLabel}>
+                    {isAdmin
+                      ? "TOTAL SALDO BERSIH KESELURUHAN"
+                      : "TOTAL KAS DIBAYAR"}
+                  </span>
+                  <h1 style={styles.statNumber}>
+                    Rp{" "}
+                    {(isAdmin ? saldoBersih : totalVerifiedUser).toLocaleString(
+                      "id-ID"
+                    )}
+                  </h1>
+                  {isAdmin && (
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "16px",
+                        fontSize: "12px",
+                        marginTop: "6px",
+                      }}
+                    >
+                      <span style={{ color: "#a1a1aa" }}>
+                        Masuk:{" "}
+                        <strong style={{ color: "#22c55e" }}>
+                          +Rp {totalIn.toLocaleString("id-ID")}
+                        </strong>
+                      </span>
+                      <span style={{ color: "#a1a1aa" }}>
+                        Keluar:{" "}
+                        <strong style={{ color: "#ef4444" }}>
+                          -Rp {totalOut.toLocaleString("id-ID")}
+                        </strong>
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* KARTU PENGATURAN KREDENSIAL */}
+                <div style={styles.card} className="login-card-animated">
+                  <span style={styles.cardHeaderLabel}>
+                    PENGATURAN KREDENSIAL
+                  </span>
+                  <form
+                    onSubmit={handleUpdateProfilePribadi}
+                    style={{ marginTop: "10px" }}
+                  >
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "8px",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <input
+                        type="text"
+                        placeholder="Nama Pengguna"
+                        value={newUsername}
+                        onChange={(e) => setNewUsername(e.target.value)}
+                        required
+                        style={styles.inputSm}
+                        className="form-field"
+                      />
+                      <input
+                        type="password"
+                        placeholder="Sandi Baru (Opsional)"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        style={styles.inputSm}
+                        className="form-field"
+                      />
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        type="submit"
+                        style={styles.btnSaveSm}
+                        className="btn-action"
+                      >
+                        Perbarui Akun
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        style={{
+                          ...styles.btnLogout,
+                          width: "auto",
+                          whiteSpace: "nowrap",
+                        }}
+                        className="btn-action"
+                      >
+                        🚪 Keluar
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
-              <div style={{ textAlign: "right", fontSize: "11px" }}>
-                <div>
-                  <strong>Periode Laporan:</strong> {labelPeriodeCetak()}
-                </div>
-                {filterMemberName && (
-                  <div>
-                    <strong>Filter Anggota:</strong> {filterMemberName}
+
+              {/* PORTAL ANGGOTA */}
+              {!isAdmin && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                    gap: "16px",
+                    marginTop: "16px",
+                  }}
+                >
+                  <div style={styles.card} className="login-card-animated">
+                    <h3 style={styles.cardTitle}>Formulir Pembayaran Kas</h3>
+                    <InputForm onSuccess={fetchTransaksi} />
                   </div>
-                )}
-                <div>
-                  <strong>Tanggal Cetak:</strong> {tanggalCetak} (Oleh:{" "}
-                  {user.name})
+
+                  <div style={styles.card} className="login-card-animated">
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: "8px",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <h3 style={{ ...styles.cardTitle, margin: 0 }}>
+                        Riwayat Pembayaran Saya
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={handlePrintReport}
+                        style={{ ...styles.btnEdit, background: "#16a34a" }}
+                        className="btn-action"
+                      >
+                        🖨️ Cetak PDF
+                      </button>
+                    </div>
+
+                    {/* Filter Rentang Tanggal A - B untuk Anggota */}
+                    <div style={styles.subFormContainer}>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr auto",
+                          gap: "8px",
+                          alignItems: "end",
+                        }}
+                      >
+                        <div>
+                          <label
+                            style={{ ...styles.label, marginBottom: "4px" }}
+                          >
+                            Dari Tanggal (A):
+                          </label>
+                          <input
+                            type="date"
+                            value={filterStartDate}
+                            onChange={(e) => setFilterStartDate(e.target.value)}
+                            style={{ ...styles.inputSm, colorScheme: "dark" }}
+                            className="form-field"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            style={{ ...styles.label, marginBottom: "4px" }}
+                          >
+                            Sampai Tanggal (B):
+                          </label>
+                          <input
+                            type="date"
+                            value={filterEndDate}
+                            onChange={(e) => setFilterEndDate(e.target.value)}
+                            style={{ ...styles.inputSm, colorScheme: "dark" }}
+                            className="form-field"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleResetFilter}
+                          style={{
+                            ...styles.btnEdit,
+                            background: "#27272a",
+                            height: "30px",
+                          }}
+                          className="btn-action"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={styles.table}>
+                        <thead>
+                          <tr>
+                            <th style={styles.th}>TANGGAL</th>
+                            <th style={styles.th}>NOMINAL</th>
+                            <th style={styles.th}>STATUS</th>
+                            <th style={{ ...styles.th, textAlign: "right" }}>
+                              DETAIL
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {myTransaksiFiltered.length === 0 ? (
+                            <tr>
+                              <td colSpan="4" style={styles.tdEmpty}>
+                                Belum ada riwayat transaksi pada periode ini.
+                              </td>
+                            </tr>
+                          ) : (
+                            myTransaksiFiltered.map((item) => (
+                              <tr key={item.id} style={styles.tr}>
+                                <td style={styles.tdMuted}>
+                                  {item.transaction_date || "-"}
+                                </td>
+                                <td style={styles.tdGreen}>
+                                  +Rp{" "}
+                                  {parseInt(
+                                    item.amount || item.jumlah || 0
+                                  ).toLocaleString("id-ID")}
+                                </td>
+                                <td style={styles.td}>
+                                  <span
+                                    style={
+                                      (item.status || "").toLowerCase() ===
+                                        "settlement" ||
+                                      (item.status || "").toLowerCase() ===
+                                        "lunas"
+                                        ? styles.badgeSuccess
+                                        : (item.status || "").toLowerCase() ===
+                                          "ditolak"
+                                        ? styles.badgeDanger
+                                        : styles.badgePending
+                                    }
+                                  >
+                                    {formatStatusLabel(item.status)}
+                                  </span>
+                                </td>
+                                <td style={{ ...styles.td, textAlign: "right" }}>
+                                  {item.description &&
+                                    item.description.startsWith(
+                                      "data:image"
+                                    ) && (
+                                      <button
+                                        onClick={() =>
+                                          setSelectedProof(item.description)
+                                        }
+                                        style={styles.btnProof}
+                                        className="btn-action"
+                                      >
+                                        Lihat Bukti
+                                      </button>
+                                    )}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
+              )}
+
+              {/* PORTAL ADMIN */}
+              {isAdmin && (
+                <>
+                  {/* PANEL FILTER PERIODE TANGGAL A - B & CETAK LAPORAN PDF */}
+                  <div
+                    style={{
+                      ...styles.card,
+                      marginTop: "16px",
+                      border: "1px solid rgba(59, 130, 246, 0.35)",
+                    }}
+                    className="login-card-animated"
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: "10px",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <div>
+                        <h3 style={{ ...styles.cardTitle, margin: 0 }}>
+                          Filter Periode Laporan & Cetak PDF
+                        </h3>
+                        <span style={{ fontSize: "11px", color: "#a1a1aa" }}>
+                          Pilih rentang tanggal mulai (A) hingga tanggal akhir
+                          (B) untuk menyaring pemasukan, pengeluaran, dan hasil
+                          cetak PDF.
+                        </span>
+                      </div>
+
+                      <div
+                        style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
+                      >
+                        <button
+                          type="button"
+                          onClick={handleSetBulanIni}
+                          style={{ ...styles.btnEdit, background: "#0284c7" }}
+                          className="btn-action"
+                        >
+                          📅 Bulan Ini
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleResetFilter}
+                          style={{ ...styles.btnEdit, background: "#27272a" }}
+                          className="btn-action"
+                        >
+                          Reset Filter
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handlePrintReport}
+                          style={{
+                            ...styles.btnEdit,
+                            background: "#16a34a",
+                            fontWeight: "600",
+                            padding: "6px 12px",
+                          }}
+                          className="btn-action"
+                        >
+                          🖨️ Cetak Laporan PDF
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ ...styles.subFormContainer, marginBottom: 0 }}>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(180px, 1fr))",
+                          gap: "10px",
+                        }}
+                      >
+                        <div>
+                          <label
+                            style={{ ...styles.label, marginBottom: "4px" }}
+                          >
+                            Dari Tanggal (A):
+                          </label>
+                          <input
+                            type="date"
+                            value={filterStartDate}
+                            onChange={(e) => setFilterStartDate(e.target.value)}
+                            style={{ ...styles.inputSm, colorScheme: "dark" }}
+                            className="form-field"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            style={{ ...styles.label, marginBottom: "4px" }}
+                          >
+                            Sampai Tanggal (B):
+                          </label>
+                          <input
+                            type="date"
+                            value={filterEndDate}
+                            onChange={(e) => setFilterEndDate(e.target.value)}
+                            style={{ ...styles.inputSm, colorScheme: "dark" }}
+                            className="form-field"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            style={{ ...styles.label, marginBottom: "4px" }}
+                          >
+                            Cari Nama Anggota (Opsional):
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Ketik nama anggota..."
+                            value={filterMemberName}
+                            onChange={(e) =>
+                              setFilterMemberName(e.target.value)
+                            }
+                            style={styles.inputSm}
+                            className="form-field"
+                          />
+                        </div>
+                      </div>
+
+                      {hasActiveFilter && (
+                        <div
+                          style={{
+                            marginTop: "10px",
+                            paddingTop: "8px",
+                            borderTop: "1px solid rgba(255,255,255,0.08)",
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "16px",
+                            fontSize: "11px",
+                            color: "#d4d4d8",
+                          }}
+                        >
+                          <span>
+                            Periode Aktif:{" "}
+                            <strong>{labelPeriodeCetak()}</strong>
+                          </span>
+                          <span>
+                            Pemasukan Periode:{" "}
+                            <strong style={{ color: "#22c55e" }}>
+                              +Rp {filteredTotalIn.toLocaleString("id-ID")}
+                            </strong>
+                          </span>
+                          <span>
+                            Pengeluaran Periode:{" "}
+                            <strong style={{ color: "#ef4444" }}>
+                              -Rp {filteredTotalOut.toLocaleString("id-ID")}
+                            </strong>
+                          </span>
+                          <span>
+                            Selisih:{" "}
+                            <strong style={{ color: "#60a5fa" }}>
+                              Rp {filteredSaldoBersih.toLocaleString("id-ID")}
+                            </strong>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* KELOLA ANGGOTA */}
+                  <div
+                    style={{ ...styles.card, marginTop: "16px" }}
+                    className="login-card-animated"
+                  >
+                    <h3 style={styles.cardTitle}>Kelola Anggota</h3>
+
+                    <form
+                      onSubmit={handleTambahAnggota}
+                      style={styles.subFormContainer}
+                    >
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(150px, 1fr))",
+                          gap: "8px",
+                        }}
+                      >
+                        <input
+                          type="text"
+                          placeholder="Nama Lengkap"
+                          value={addName}
+                          onChange={(e) => setAddName(e.target.value)}
+                          required
+                          style={styles.inputSm}
+                          className="form-field"
+                        />
+                        <input
+                          type="email"
+                          placeholder="Email"
+                          value={addEmail}
+                          onChange={(e) => setAddEmail(e.target.value)}
+                          required
+                          style={styles.inputSm}
+                          className="form-field"
+                        />
+                        <input
+                          type="password"
+                          placeholder="Kata Sandi"
+                          value={addPass}
+                          onChange={(e) => setAddPass(e.target.value)}
+                          required
+                          style={styles.inputSm}
+                          className="form-field"
+                        />
+                        <select
+                          value={addRole}
+                          onChange={(e) => setAddRole(e.target.value)}
+                          style={{ ...styles.inputSm, background: "#09090b" }}
+                        >
+                          <option value="anggota">Anggota</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                        <button
+                          type="submit"
+                          style={styles.btnSaveSm}
+                          className="btn-action"
+                        >
+                          Tambah
+                        </button>
+                      </div>
+                    </form>
+
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={styles.table}>
+                        <thead>
+                          <tr>
+                            <th style={styles.th}>ID</th>
+                            <th style={styles.th}>NAMA</th>
+                            <th style={styles.th}>EMAIL</th>
+                            <th style={styles.th}>ROLE</th>
+                            <th style={{ ...styles.th, textAlign: "right" }}>
+                              AKSI
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {anggotaList.map((m) => (
+                            <tr key={m.id} style={styles.tr}>
+                              <td style={styles.tdMuted}>#{m.id}</td>
+                              <td style={styles.tdWhite}>
+                                {editingUserId === m.id ? (
+                                  <input
+                                    type="text"
+                                    value={editName}
+                                    onChange={(e) =>
+                                      setEditName(e.target.value)
+                                    }
+                                    style={styles.inputSm}
+                                    className="form-field"
+                                  />
+                                ) : (
+                                  m.name
+                                )}
+                              </td>
+                              <td style={styles.tdMuted}>
+                                {editingUserId === m.id ? (
+                                  <input
+                                    type="email"
+                                    value={editEmail}
+                                    onChange={(e) =>
+                                      setEditEmail(e.target.value)
+                                    }
+                                    style={styles.inputSm}
+                                    className="form-field"
+                                  />
+                                ) : (
+                                  m.email
+                                )}
+                              </td>
+                              <td style={styles.td}>
+                                {editingUserId === m.id ? (
+                                  <select
+                                    value={editRole}
+                                    onChange={(e) =>
+                                      setEditRole(e.target.value)
+                                    }
+                                    style={styles.inputSm}
+                                  >
+                                    <option value="anggota">Anggota</option>
+                                    <option value="admin">Admin</option>
+                                  </select>
+                                ) : (
+                                  <span
+                                    style={
+                                      m.role === "admin"
+                                        ? styles.badgeAdmin
+                                        : styles.badgeMember
+                                    }
+                                  >
+                                    {m.role ? m.role.toUpperCase() : "ANGGOTA"}
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ ...styles.td, textAlign: "right" }}>
+                                {editingUserId === m.id ? (
+                                  <button
+                                    onClick={() => handleSaveEditAnggota(m.id)}
+                                    style={styles.btnSaveSm}
+                                    className="btn-action"
+                                  >
+                                    Simpan
+                                  </button>
+                                ) : (
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      gap: "6px",
+                                      justifyContent: "flex-end",
+                                    }}
+                                  >
+                                    <button
+                                      onClick={() => {
+                                        setEditingUserId(m.id);
+                                        setEditName(m.name);
+                                        setEditEmail(m.email);
+                                        setEditPass(m.password);
+                                        setEditRole(m.role || "anggota");
+                                      }}
+                                      style={styles.btnEdit}
+                                      className="btn-action"
+                                    >
+                                      Ubah
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleHapusAnggota(m.id, m.name)
+                                      }
+                                      style={styles.btnReject}
+                                      className="btn-action"
+                                    >
+                                      Hapus
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* RINCIAN PENGELUARAN KAS */}
+                  <div
+                    style={{ ...styles.card, marginTop: "16px" }}
+                    className="login-card-animated"
+                  >
+                    <h3 style={styles.cardTitle}>
+                      Rincian Pengeluaran Kas{" "}
+                      {hasActiveFilter ? `(${labelPeriodeCetak()})` : ""}
+                    </h3>
+
+                    <form
+                      onSubmit={handleTambahKasKeluar}
+                      style={styles.subFormContainer}
+                    >
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(150px, 1fr))",
+                          gap: "8px",
+                        }}
+                      >
+                        <input
+                          type="text"
+                          placeholder="Keterangan Pengeluaran"
+                          value={outKeterangan}
+                          onChange={(e) => setOutKeterangan(e.target.value)}
+                          required
+                          style={styles.inputSm}
+                          className="form-field"
+                        />
+                        <input
+                          type="number"
+                          placeholder="Jumlah (Rp)"
+                          value={outAmount}
+                          onChange={(e) => setOutAmount(e.target.value)}
+                          required
+                          style={styles.inputSm}
+                          className="form-field"
+                        />
+                        <input
+                          type="date"
+                          value={outDate}
+                          onChange={(e) => setOutDate(e.target.value)}
+                          style={{ ...styles.inputSm, colorScheme: "dark" }}
+                          className="form-field"
+                        />
+                        <button
+                          type="submit"
+                          style={styles.btnReject}
+                          className="btn-action"
+                        >
+                          Catat Pengeluaran
+                        </button>
+                      </div>
+                    </form>
+
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={styles.table}>
+                        <thead>
+                          <tr>
+                            <th style={styles.th}>TANGGAL</th>
+                            <th style={styles.th}>KETERANGAN</th>
+                            <th style={{ ...styles.th, textAlign: "right" }}>
+                              NOMINAL
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredKasKeluarAdmin.length === 0 ? (
+                            <tr>
+                              <td colSpan="3" style={styles.tdEmpty}>
+                                Belum ada data pengeluaran pada periode ini.
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredKasKeluarAdmin.map((item) => (
+                              <tr key={item.id} style={styles.tr}>
+                                <td style={styles.tdMuted}>
+                                  {item.expense_date || "-"}
+                                </td>
+                                <td style={styles.tdWhite}>{item.title}</td>
+                                <td
+                                  style={{
+                                    ...styles.td,
+                                    textAlign: "right",
+                                    color: "#ef4444",
+                                    fontWeight: "600",
+                                  }}
+                                >
+                                  -Rp{" "}
+                                  {parseInt(item.amount || 0).toLocaleString(
+                                    "id-ID"
+                                  )}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* RINCIAN PEMBAYARAN MASUK */}
+                  <div
+                    style={{ ...styles.card, marginTop: "16px" }}
+                    className="login-card-animated"
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: "10px",
+                        marginBottom: "14px",
+                      }}
+                    >
+                      <h3 style={{ ...styles.cardTitle, margin: 0 }}>
+                        Rincian Pembayaran Masuk{" "}
+                        {hasActiveFilter ? `(${labelPeriodeCetak()})` : ""}
+                      </h3>
+
+                      <button
+                        type="button"
+                        onClick={handlePrintReport}
+                        style={{ ...styles.btnEdit, background: "#16a34a" }}
+                        className="btn-action"
+                      >
+                        🖨️ Cetak Laporan PDF
+                      </button>
+                    </div>
+
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={styles.table}>
+                        <thead>
+                          <tr>
+                            <th style={styles.th}>TANGGAL</th>
+                            <th style={styles.th}>PEMBAYAR</th>
+                            <th style={styles.th}>NOMINAL</th>
+                            <th style={styles.th}>STATUS</th>
+                            <th style={{ ...styles.th, textAlign: "right" }}>
+                              AKSI
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredTransaksiAdmin.length === 0 ? (
+                            <tr>
+                              <td colSpan="5" style={styles.tdEmpty}>
+                                Tidak ada data pembayaran pada periode ini.
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredTransaksiAdmin.map((item) => (
+                              <tr key={item.id} style={styles.tr}>
+                                <td style={styles.tdMuted}>
+                                  {item.transaction_date || "-"}
+                                </td>
+                                <td style={styles.tdWhite}>
+                                  {item.payer_name || item.keterangan || "-"}
+                                </td>
+                                <td style={styles.tdGreen}>
+                                  +Rp{" "}
+                                  {parseInt(
+                                    item.amount || item.jumlah || 0
+                                  ).toLocaleString("id-ID")}
+                                </td>
+                                <td style={styles.td}>
+                                  <span
+                                    style={
+                                      (item.status || "").toLowerCase() ===
+                                        "settlement" ||
+                                      (item.status || "").toLowerCase() ===
+                                        "lunas"
+                                        ? styles.badgeSuccess
+                                        : (item.status || "").toLowerCase() ===
+                                          "ditolak"
+                                        ? styles.badgeDanger
+                                        : styles.badgePending
+                                    }
+                                  >
+                                    {formatStatusLabel(item.status)}
+                                  </span>
+                                </td>
+                                <td style={{ ...styles.td, textAlign: "right" }}>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      gap: "6px",
+                                      justifyContent: "flex-end",
+                                    }}
+                                  >
+                                    {item.description &&
+                                      item.description.startsWith(
+                                        "data:image"
+                                      ) && (
+                                        <button
+                                          onClick={() =>
+                                            setSelectedProof(item.description)
+                                          }
+                                          style={styles.btnProof}
+                                          className="btn-action"
+                                        >
+                                          Bukti
+                                        </button>
+                                      )}
+                                    {((item.status || "").toLowerCase() ===
+                                      "pending" ||
+                                      !item.status) && (
+                                      <>
+                                        <button
+                                          onClick={() =>
+                                            handleVerifikasi(item.id)
+                                          }
+                                          style={styles.btnApprove}
+                                          className="btn-action"
+                                        >
+                                          Setujui
+                                        </button>
+                                        <button
+                                          onClick={() => handleTolak(item.id)}
+                                          style={styles.btnReject}
+                                          className="btn-action"
+                                        >
+                                          Tolak
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
+            </main>
+          </div>
+        )}
+      </div>
+
+      {/* ==================== AREA KHUSUS CETAK LAPORAN PDF ==================== */}
+      {user && (
+        <div id="print-area">
+          {/* Kop Surat */}
+          <div className="print-header-box">
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <img
+                src={logoImg}
+                alt="Logo"
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "6px",
+                  objectFit: "cover",
+                }}
+              />
+              <div>
+                <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "800" }}>
+                  SOUTHERN BASE
+                </h2>
+                <p style={{ margin: "2px 0 0 0", fontSize: "11px" }}>
+                  Laporan Rekapitulasi Keuangan & Kas Organisasi
+                </p>
               </div>
             </div>
+            <div style={{ textAlign: "right", fontSize: "11px" }}>
+              <div>
+                <strong>Periode Laporan:</strong> {labelPeriodeCetak()}
+              </div>
+              {filterMemberName && (
+                <div>
+                  <strong>Filter Anggota:</strong> {filterMemberName}
+                </div>
+              )}
+              <div>
+                <strong>Tanggal Cetak:</strong> {tanggalCetak} (Oleh:{" "}
+                {user.name})
+              </div>
+            </div>
+          </div>
 
-            {/* RINGKASAN KEUANGAN KHUSUS CETAK PDF (SESUAI FILTER TANGGAL A - B) */}
-            {isAdmin && (
-              <div className="print-only print-summary-box">
+          {isAdmin ? (
+            <>
+              {/* Ringkasan Saldo Admin */}
+              <div className="print-summary-box">
                 <div className="print-summary-item">
-                  <div style={{ fontSize: "10px", fontWeight: "600" }}>
-                    PEMASUKAN DISETUJUI ({hasActiveFilter ? "PERIODE FILTER" : "TOTAL"})
+                  <div style={{ fontSize: "10px", fontWeight: "700" }}>
+                    PEMASUKAN DISETUJUI (
+                    {hasActiveFilter ? "PERIODE FILTER" : "TOTAL"})
                   </div>
                   <div
                     style={{
@@ -867,8 +1738,9 @@ function App() {
                   </div>
                 </div>
                 <div className="print-summary-item">
-                  <div style={{ fontSize: "10px", fontWeight: "600" }}>
-                    PENGELUARAN KAS ({hasActiveFilter ? "PERIODE FILTER" : "TOTAL"})
+                  <div style={{ fontSize: "10px", fontWeight: "700" }}>
+                    PENGELUARAN KAS (
+                    {hasActiveFilter ? "PERIODE FILTER" : "TOTAL"})
                   </div>
                   <div
                     style={{
@@ -881,7 +1753,7 @@ function App() {
                   </div>
                 </div>
                 <div className="print-summary-item">
-                  <div style={{ fontSize: "10px", fontWeight: "600" }}>
+                  <div style={{ fontSize: "10px", fontWeight: "700" }}>
                     SELISIH / SALDO BERSIH
                   </div>
                   <div
@@ -895,897 +1767,184 @@ function App() {
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* HERO GRID TAMPILAN LAYAR */}
-            <div style={styles.heroGrid} className="no-print">
-              <div style={styles.card} className="login-card-animated">
-                <span style={styles.cardHeaderLabel}>
-                  {isAdmin ? "TOTAL SALDO BERSIH KESELURUHAN" : "TOTAL KAS DIBAYAR"}
-                </span>
-                <h1 style={styles.statNumber}>
-                  Rp{" "}
-                  {(isAdmin ? saldoBersih : totalVerifiedUser).toLocaleString(
-                    "id-ID"
+              {/* Tabel Pemasukan Admin */}
+              <div className="print-section-title">
+                Rincian Pembayaran Masuk ({labelPeriodeCetak()})
+              </div>
+              <table className="print-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: "40px" }}>NO</th>
+                    <th style={{ width: "110px" }}>TANGGAL</th>
+                    <th>PEMBAYAR</th>
+                    <th style={{ width: "130px", textAlign: "right" }}>
+                      NOMINAL
+                    </th>
+                    <th style={{ width: "100px", textAlign: "center" }}>
+                      STATUS
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTransaksiAdmin.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: "center" }}>
+                        Tidak ada data pembayaran pada periode ini.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredTransaksiAdmin.map((item, idx) => (
+                      <tr key={item.id}>
+                        <td>{idx + 1}</td>
+                        <td>{item.transaction_date || "-"}</td>
+                        <td>{item.payer_name || item.keterangan || "-"}</td>
+                        <td style={{ textAlign: "right", fontWeight: "600" }}>
+                          +Rp{" "}
+                          {parseInt(
+                            item.amount || item.jumlah || 0
+                          ).toLocaleString("id-ID")}
+                        </td>
+                        <td style={{ textAlign: "center", fontWeight: "600" }}>
+                          {formatStatusLabel(item.status)}
+                        </td>
+                      </tr>
+                    ))
                   )}
-                </h1>
-                {isAdmin && (
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "16px",
-                      fontSize: "12px",
-                      marginTop: "6px",
-                    }}
-                  >
-                    <span style={{ color: "#a1a1aa" }}>
-                      Masuk:{" "}
-                      <strong style={{ color: "#22c55e" }}>
-                        +Rp {totalIn.toLocaleString("id-ID")}
-                      </strong>
-                    </span>
-                    <span style={{ color: "#a1a1aa" }}>
-                      Keluar:{" "}
-                      <strong style={{ color: "#ef4444" }}>
-                        -Rp {totalOut.toLocaleString("id-ID")}
-                      </strong>
-                    </span>
-                  </div>
-                )}
+                </tbody>
+              </table>
+
+              {/* Tabel Pengeluaran Admin */}
+              <div className="print-section-title">
+                Rincian Pengeluaran Kas ({labelPeriodeCetak()})
               </div>
+              <table className="print-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: "40px" }}>NO</th>
+                    <th style={{ width: "110px" }}>TANGGAL</th>
+                    <th>KETERANGAN PENGELUARAN</th>
+                    <th style={{ width: "130px", textAlign: "right" }}>
+                      NOMINAL
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredKasKeluarAdmin.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" style={{ textAlign: "center" }}>
+                        Tidak ada data pengeluaran pada periode ini.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredKasKeluarAdmin.map((item, idx) => (
+                      <tr key={item.id}>
+                        <td>{idx + 1}</td>
+                        <td>{item.expense_date || "-"}</td>
+                        <td>{item.title}</td>
+                        <td style={{ textAlign: "right", fontWeight: "600" }}>
+                          -Rp{" "}
+                          {parseInt(item.amount || 0).toLocaleString("id-ID")}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
 
-              {/* KARTU PENGATURAN KREDENSIAL */}
-              <div
-                style={styles.card}
-                className="no-print login-card-animated"
-              >
-                <span style={styles.cardHeaderLabel}>
-                  PENGATURAN KREDENSIAL
-                </span>
-                <form
-                  onSubmit={handleUpdateProfilePribadi}
-                  style={{ marginTop: "10px" }}
-                >
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: "8px",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    <input
-                      type="text"
-                      placeholder="Nama Pengguna"
-                      value={newUsername}
-                      onChange={(e) => setNewUsername(e.target.value)}
-                      required
-                      style={styles.inputSm}
-                      className="form-field"
-                    />
-                    <input
-                      type="password"
-                      placeholder="Sandi Baru (Opsional)"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      style={styles.inputSm}
-                      className="form-field"
-                    />
-                  </div>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button
-                      type="submit"
-                      style={styles.btnSaveSm}
-                      className="btn-action"
-                    >
-                      Perbarui Akun
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      style={{
-                        ...styles.btnLogout,
-                        width: "auto",
-                        whiteSpace: "nowrap",
-                      }}
-                      className="btn-action"
-                    >
-                      🚪 Keluar
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-
-            {/* PORTAL ANGGOTA */}
-            {!isAdmin && (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-                  gap: "16px",
-                  marginTop: "16px",
-                }}
-              >
-                <div
-                  style={styles.card}
-                  className="no-print login-card-animated"
-                >
-                  <h3 style={styles.cardTitle}>Formulir Pembayaran Kas</h3>
-                  <InputForm onSuccess={fetchTransaksi} />
-                </div>
-
-                <div style={styles.card} className="login-card-animated">
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      gap: "8px",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    <h3 style={{ ...styles.cardTitle, margin: 0 }}>
-                      Riwayat Pembayaran Saya
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={handlePrintReport}
-                      style={{ ...styles.btnEdit, background: "#16a34a" }}
-                      className="btn-action no-print"
-                    >
-                      🖨️ Cetak PDF
-                    </button>
-                  </div>
-
-                  {/* Filter Rentang Tanggal A - B untuk Anggota */}
-                  <div style={styles.subFormContainer} className="no-print">
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr auto",
-                        gap: "8px",
-                        alignItems: "end",
-                      }}
-                    >
-                      <div>
-                        <label style={{ ...styles.label, marginBottom: "4px" }}>
-                          Dari Tanggal (A):
-                        </label>
-                        <input
-                          type="date"
-                          value={filterStartDate}
-                          onChange={(e) => setFilterStartDate(e.target.value)}
-                          style={{ ...styles.inputSm, colorScheme: "dark" }}
-                          className="form-field"
-                        />
-                      </div>
-                      <div>
-                        <label style={{ ...styles.label, marginBottom: "4px" }}>
-                          Sampai Tanggal (B):
-                        </label>
-                        <input
-                          type="date"
-                          value={filterEndDate}
-                          onChange={(e) => setFilterEndDate(e.target.value)}
-                          style={{ ...styles.inputSm, colorScheme: "dark" }}
-                          className="form-field"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleResetFilter}
-                        style={{
-                          ...styles.btnEdit,
-                          background: "#27272a",
-                          height: "30px",
-                        }}
-                        className="btn-action"
-                      >
-                        Reset
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={styles.table}>
-                      <thead>
-                        <tr>
-                          <th style={styles.th}>TANGGAL</th>
-                          <th style={styles.th}>NOMINAL</th>
-                          <th style={styles.th}>STATUS</th>
-                          <th
-                            style={{ ...styles.th, textAlign: "right" }}
-                            className="no-print"
-                          >
-                            DETAIL
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {myTransaksiFiltered.length === 0 ? (
-                          <tr>
-                            <td colSpan="4" style={styles.tdEmpty}>
-                              Belum ada riwayat transaksi pada periode ini.
-                            </td>
-                          </tr>
-                        ) : (
-                          myTransaksiFiltered.map((item) => (
-                            <tr key={item.id} style={styles.tr}>
-                              <td style={styles.tdMuted}>
-                                {item.transaction_date || "-"}
-                              </td>
-                              <td style={styles.tdGreen}>
-                                +Rp{" "}
-                                {parseInt(
-                                  item.amount || item.jumlah || 0
-                                ).toLocaleString("id-ID")}
-                              </td>
-                              <td style={styles.td}>
-                                <span
-                                  style={
-                                    (item.status || "").toLowerCase() ===
-                                      "settlement" ||
-                                    (item.status || "").toLowerCase() ===
-                                      "lunas"
-                                      ? styles.badgeSuccess
-                                      : (item.status || "").toLowerCase() ===
-                                        "ditolak"
-                                      ? styles.badgeDanger
-                                      : styles.badgePending
-                                  }
-                                >
-                                  {(item.status || "").toLowerCase() ===
-                                    "settlement" ||
-                                  (item.status || "").toLowerCase() === "lunas"
-                                    ? "Disetujui"
-                                    : (item.status || "").toLowerCase() ===
-                                      "ditolak"
-                                    ? "Ditolak"
-                                    : "Menunggu"}
-                                </span>
-                              </td>
-                              <td
-                                style={{ ...styles.td, textAlign: "right" }}
-                                className="no-print"
-                              >
-                                {item.description &&
-                                  item.description.startsWith("data:image") && (
-                                    <button
-                                      onClick={() =>
-                                        setSelectedProof(item.description)
-                                      }
-                                      style={styles.btnProof}
-                                      className="btn-action"
-                                    >
-                                      Lihat Bukti
-                                    </button>
-                                  )}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* PORTAL ADMIN */}
-            {isAdmin && (
-              <>
-                {/* PANEL FILTER PERIODE TANGGAL A - B & CETAK LAPORAN PDF */}
+              {/* Tanda Tangan */}
+              <div className="print-signature">
                 <div
                   style={{
-                    ...styles.card,
-                    marginTop: "16px",
-                    border: "1px solid rgba(59, 130, 246, 0.35)",
+                    textAlign: "center",
+                    width: "220px",
+                    fontSize: "11px",
                   }}
-                  className="no-print login-card-animated"
                 >
+                  <div>Mengetahui,</div>
+                  <div style={{ fontWeight: "700", marginTop: "2px" }}>
+                    Bendahara / Admin Southern Base
+                  </div>
+                  <div style={{ height: "55px" }}></div>
                   <div
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      gap: "10px",
-                      marginBottom: "12px",
+                      borderTop: "1px solid #111827",
+                      paddingTop: "4px",
+                      fontWeight: "700",
                     }}
                   >
-                    <div>
-                      <h3 style={{ ...styles.cardTitle, margin: 0 }}>
-                        Filter Periode Laporan & Cetak PDF
-                      </h3>
-                      <span style={{ fontSize: "11px", color: "#a1a1aa" }}>
-                        Pilih rentang tanggal mulai (A) hingga tanggal akhir (B)
-                        untuk menyaring pemasukan, pengeluaran, dan hasil cetak PDF.
-                      </span>
-                    </div>
-
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        onClick={handleSetBulanIni}
-                        style={{ ...styles.btnEdit, background: "#0284c7" }}
-                        className="btn-action"
-                      >
-                        📅 Bulan Ini
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleResetFilter}
-                        style={{ ...styles.btnEdit, background: "#27272a" }}
-                        className="btn-action"
-                      >
-                        Reset Filter
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handlePrintReport}
-                        style={{
-                          ...styles.btnEdit,
-                          background: "#16a34a",
-                          fontWeight: "600",
-                          padding: "6px 12px",
-                        }}
-                        className="btn-action"
-                      >
-                        🖨️ Cetak Laporan PDF
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={{ ...styles.subFormContainer, marginBottom: 0 }}>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(180px, 1fr))",
-                        gap: "10px",
-                      }}
-                    >
-                      <div>
-                        <label style={{ ...styles.label, marginBottom: "4px" }}>
-                          Dari Tanggal (A):
-                        </label>
-                        <input
-                          type="date"
-                          value={filterStartDate}
-                          onChange={(e) => setFilterStartDate(e.target.value)}
-                          style={{ ...styles.inputSm, colorScheme: "dark" }}
-                          className="form-field"
-                        />
-                      </div>
-                      <div>
-                        <label style={{ ...styles.label, marginBottom: "4px" }}>
-                          Sampai Tanggal (B):
-                        </label>
-                        <input
-                          type="date"
-                          value={filterEndDate}
-                          onChange={(e) => setFilterEndDate(e.target.value)}
-                          style={{ ...styles.inputSm, colorScheme: "dark" }}
-                          className="form-field"
-                        />
-                      </div>
-                      <div>
-                        <label style={{ ...styles.label, marginBottom: "4px" }}>
-                          Cari Nama Anggota (Opsional):
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Ketik nama anggota..."
-                          value={filterMemberName}
-                          onChange={(e) => setFilterMemberName(e.target.value)}
-                          style={styles.inputSm}
-                          className="form-field"
-                        />
-                      </div>
-                    </div>
-
-                    {hasActiveFilter && (
-                      <div
-                        style={{
-                          marginTop: "10px",
-                          paddingTop: "8px",
-                          borderTop: "1px solid rgba(255,255,255,0.08)",
-                          display: "flex",
-                          flexWrap: "wrap",
-                          gap: "16px",
-                          fontSize: "11px",
-                          color: "#d4d4d8",
-                        }}
-                      >
-                        <span>
-                          Periode Aktif: <strong>{labelPeriodeCetak()}</strong>
-                        </span>
-                        <span>
-                          Pemasukan Periode:{" "}
-                          <strong style={{ color: "#22c55e" }}>
-                            +Rp {filteredTotalIn.toLocaleString("id-ID")}
-                          </strong>
-                        </span>
-                        <span>
-                          Pengeluaran Periode:{" "}
-                          <strong style={{ color: "#ef4444" }}>
-                            -Rp {filteredTotalOut.toLocaleString("id-ID")}
-                          </strong>
-                        </span>
-                        <span>
-                          Selisih:{" "}
-                          <strong style={{ color: "#60a5fa" }}>
-                            Rp {filteredSaldoBersih.toLocaleString("id-ID")}
-                          </strong>
-                        </span>
-                      </div>
-                    )}
+                    {user.name}
                   </div>
                 </div>
-
-                {/* KELOLA ANGGOTA (TIDAK IKUT TERCETAK DI LAPORAN KEUANGAN PDF) */}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Laporan Khusus Anggota */}
+              <div
+                className="print-summary-item"
+                style={{ marginBottom: "16px" }}
+              >
+                <div style={{ fontSize: "10px", fontWeight: "700" }}>
+                  TOTAL KAS DISETUJUI ({labelPeriodeCetak().toUpperCase()})
+                </div>
                 <div
-                  style={{ ...styles.card, marginTop: "16px" }}
-                  className="no-print login-card-animated"
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "800",
+                    marginTop: "4px",
+                  }}
                 >
-                  <h3 style={styles.cardTitle}>Kelola Anggota</h3>
-
-                  <form
-                    onSubmit={handleTambahAnggota}
-                    style={styles.subFormContainer}
-                  >
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(150px, 1fr))",
-                        gap: "8px",
-                      }}
-                    >
-                      <input
-                        type="text"
-                        placeholder="Nama Lengkap"
-                        value={addName}
-                        onChange={(e) => setAddName(e.target.value)}
-                        required
-                        style={styles.inputSm}
-                        className="form-field"
-                      />
-                      <input
-                        type="email"
-                        placeholder="Email"
-                        value={addEmail}
-                        onChange={(e) => setAddEmail(e.target.value)}
-                        required
-                        style={styles.inputSm}
-                        className="form-field"
-                      />
-                      <input
-                        type="password"
-                        placeholder="Kata Sandi"
-                        value={addPass}
-                        onChange={(e) => setAddPass(e.target.value)}
-                        required
-                        style={styles.inputSm}
-                        className="form-field"
-                      />
-                      <select
-                        value={addRole}
-                        onChange={(e) => setAddRole(e.target.value)}
-                        style={{ ...styles.inputSm, background: "#09090b" }}
-                      >
-                        <option value="anggota">Anggota</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                      <button
-                        type="submit"
-                        style={styles.btnSaveSm}
-                        className="btn-action"
-                      >
-                        Tambah
-                      </button>
-                    </div>
-                  </form>
-
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={styles.table}>
-                      <thead>
-                        <tr>
-                          <th style={styles.th}>ID</th>
-                          <th style={styles.th}>NAMA</th>
-                          <th style={styles.th}>EMAIL</th>
-                          <th style={styles.th}>ROLE</th>
-                          <th style={{ ...styles.th, textAlign: "right" }}>
-                            AKSI
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {anggotaList.map((m) => (
-                          <tr key={m.id} style={styles.tr}>
-                            <td style={styles.tdMuted}>#{m.id}</td>
-                            <td style={styles.tdWhite}>
-                              {editingUserId === m.id ? (
-                                <input
-                                  type="text"
-                                  value={editName}
-                                  onChange={(e) => setEditName(e.target.value)}
-                                  style={styles.inputSm}
-                                  className="form-field"
-                                />
-                              ) : (
-                                m.name
-                              )}
-                            </td>
-                            <td style={styles.tdMuted}>
-                              {editingUserId === m.id ? (
-                                <input
-                                  type="email"
-                                  value={editEmail}
-                                  onChange={(e) => setEditEmail(e.target.value)}
-                                  style={styles.inputSm}
-                                  className="form-field"
-                                />
-                              ) : (
-                                m.email
-                              )}
-                            </td>
-                            <td style={styles.td}>
-                              {editingUserId === m.id ? (
-                                <select
-                                  value={editRole}
-                                  onChange={(e) => setEditRole(e.target.value)}
-                                  style={styles.inputSm}
-                                >
-                                  <option value="anggota">Anggota</option>
-                                  <option value="admin">Admin</option>
-                                </select>
-                              ) : (
-                                <span
-                                  style={
-                                    m.role === "admin"
-                                      ? styles.badgeAdmin
-                                      : styles.badgeMember
-                                  }
-                                >
-                                  {m.role ? m.role.toUpperCase() : "ANGGOTA"}
-                                </span>
-                              )}
-                            </td>
-                            <td style={{ ...styles.td, textAlign: "right" }}>
-                              {editingUserId === m.id ? (
-                                <button
-                                  onClick={() => handleSaveEditAnggota(m.id)}
-                                  style={styles.btnSaveSm}
-                                  className="btn-action"
-                                >
-                                  Simpan
-                                </button>
-                              ) : (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    gap: "6px",
-                                    justifyContent: "flex-end",
-                                  }}
-                                >
-                                  <button
-                                    onClick={() => {
-                                      setEditingUserId(m.id);
-                                      setEditName(m.name);
-                                      setEditEmail(m.email);
-                                      setEditPass(m.password);
-                                      setEditRole(m.role || "anggota");
-                                    }}
-                                    style={styles.btnEdit}
-                                    className="btn-action"
-                                  >
-                                    Ubah
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleHapusAnggota(m.id, m.name)
-                                    }
-                                    style={styles.btnReject}
-                                    className="btn-action"
-                                  >
-                                    Hapus
-                                  </button>
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  Rp {myFilteredVerifiedUser.toLocaleString("id-ID")}
                 </div>
+              </div>
 
-                {/* RINCIAN PENGELUARAN KAS (TERFILTER TANGGAL A - B) */}
-                <div
-                  style={{ ...styles.card, marginTop: "16px" }}
-                  className="login-card-animated"
-                >
-                  <h3 style={styles.cardTitle}>
-                    Rincian Pengeluaran Kas{" "}
-                    {hasActiveFilter ? `(${labelPeriodeCetak()})` : ""}
-                  </h3>
-
-                  <form
-                    onSubmit={handleTambahKasKeluar}
-                    style={styles.subFormContainer}
-                    className="no-print"
-                  >
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(150px, 1fr))",
-                        gap: "8px",
-                      }}
-                    >
-                      <input
-                        type="text"
-                        placeholder="Keterangan Pengeluaran"
-                        value={outKeterangan}
-                        onChange={(e) => setOutKeterangan(e.target.value)}
-                        required
-                        style={styles.inputSm}
-                        className="form-field"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Jumlah (Rp)"
-                        value={outAmount}
-                        onChange={(e) => setOutAmount(e.target.value)}
-                        required
-                        style={styles.inputSm}
-                        className="form-field"
-                      />
-                      <input
-                        type="date"
-                        value={outDate}
-                        onChange={(e) => setOutDate(e.target.value)}
-                        style={{ ...styles.inputSm, colorScheme: "dark" }}
-                        className="form-field"
-                      />
-                      <button
-                        type="submit"
-                        style={styles.btnReject}
-                        className="btn-action"
-                      >
-                        Catat Pengeluaran
-                      </button>
-                    </div>
-                  </form>
-
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={styles.table}>
-                      <thead>
-                        <tr>
-                          <th style={styles.th}>TANGGAL</th>
-                          <th style={styles.th}>KETERANGAN</th>
-                          <th style={{ ...styles.th, textAlign: "right" }}>
-                            NOMINAL
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredKasKeluarAdmin.length === 0 ? (
-                          <tr>
-                            <td colSpan="3" style={styles.tdEmpty}>
-                              Belum ada data pengeluaran pada periode ini.
-                            </td>
-                          </tr>
-                        ) : (
-                          filteredKasKeluarAdmin.map((item) => (
-                            <tr key={item.id} style={styles.tr}>
-                              <td style={styles.tdMuted}>
-                                {item.expense_date || "-"}
-                              </td>
-                              <td style={styles.tdWhite}>{item.title}</td>
-                              <td
-                                style={{
-                                  ...styles.td,
-                                  textAlign: "right",
-                                  color: "#ef4444",
-                                  fontWeight: "600",
-                                }}
-                              >
-                                -Rp{" "}
-                                {parseInt(item.amount || 0).toLocaleString(
-                                  "id-ID"
-                                )}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* RINCIAN PEMBAYARAN MASUK (TERFILTER TANGGAL A - B & NAMA) */}
-                <div
-                  style={{ ...styles.card, marginTop: "16px" }}
-                  className="login-card-animated"
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      gap: "10px",
-                      marginBottom: "14px",
-                    }}
-                  >
-                    <h3 style={{ ...styles.cardTitle, margin: 0 }}>
-                      Rincian Pembayaran Masuk{" "}
-                      {hasActiveFilter ? `(${labelPeriodeCetak()})` : ""}
-                    </h3>
-
-                    <button
-                      type="button"
-                      onClick={handlePrintReport}
-                      style={{ ...styles.btnEdit, background: "#16a34a" }}
-                      className="btn-action no-print"
-                    >
-                      🖨️ Cetak Laporan PDF
-                    </button>
-                  </div>
-
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={styles.table}>
-                      <thead>
-                        <tr>
-                          <th style={styles.th}>TANGGAL</th>
-                          <th style={styles.th}>PEMBAYAR</th>
-                          <th style={styles.th}>NOMINAL</th>
-                          <th style={styles.th}>STATUS</th>
-                          <th
-                            style={{ ...styles.th, textAlign: "right" }}
-                            className="no-print"
-                          >
-                            AKSI
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredTransaksiAdmin.length === 0 ? (
-                          <tr>
-                            <td colSpan="5" style={styles.tdEmpty}>
-                              Tidak ada data pembayaran pada periode ini.
-                            </td>
-                          </tr>
-                        ) : (
-                          filteredTransaksiAdmin.map((item) => (
-                            <tr key={item.id} style={styles.tr}>
-                              <td style={styles.tdMuted}>
-                                {item.transaction_date || "-"}
-                              </td>
-                              <td style={styles.tdWhite}>
-                                {item.payer_name || item.keterangan || "-"}
-                              </td>
-                              <td style={styles.tdGreen}>
-                                +Rp{" "}
-                                {parseInt(
-                                  item.amount || item.jumlah || 0
-                                ).toLocaleString("id-ID")}
-                              </td>
-                              <td style={styles.td}>
-                                <span
-                                  style={
-                                    (item.status || "").toLowerCase() ===
-                                      "settlement" ||
-                                    (item.status || "").toLowerCase() ===
-                                      "lunas"
-                                      ? styles.badgeSuccess
-                                      : (item.status || "").toLowerCase() ===
-                                        "ditolak"
-                                      ? styles.badgeDanger
-                                      : styles.badgePending
-                                  }
-                                >
-                                  {(item.status || "").toLowerCase() ===
-                                    "settlement" ||
-                                  (item.status || "").toLowerCase() === "lunas"
-                                    ? "Disetujui"
-                                    : (item.status || "").toLowerCase() ===
-                                      "ditolak"
-                                    ? "Ditolak"
-                                    : "Menunggu"}
-                                </span>
-                              </td>
-                              <td
-                                style={{ ...styles.td, textAlign: "right" }}
-                                className="no-print"
-                              >
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    gap: "6px",
-                                    justifyContent: "flex-end",
-                                  }}
-                                >
-                                  {item.description &&
-                                    item.description.startsWith(
-                                      "data:image"
-                                    ) && (
-                                      <button
-                                        onClick={() =>
-                                          setSelectedProof(item.description)
-                                        }
-                                        style={styles.btnProof}
-                                        className="btn-action"
-                                      >
-                                        Bukti
-                                      </button>
-                                    )}
-                                  {((item.status || "").toLowerCase() ===
-                                    "pending" ||
-                                    !item.status) && (
-                                    <>
-                                      <button
-                                        onClick={() =>
-                                          handleVerifikasi(item.id)
-                                        }
-                                        style={styles.btnApprove}
-                                        className="btn-action"
-                                      >
-                                        Setujui
-                                      </button>
-                                      <button
-                                        onClick={() => handleTolak(item.id)}
-                                        style={styles.btnReject}
-                                        className="btn-action"
-                                      >
-                                        Tolak
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* KOLOM TANDA TANGAN KHUSUS CETAK PDF */}
-                <div className="print-only print-signature">
-                  <div
-                    style={{
-                      textAlign: "center",
-                      width: "220px",
-                      fontSize: "11px",
-                    }}
-                  >
-                    <div>Mengetahui,</div>
-                    <div style={{ fontWeight: "700", marginTop: "2px" }}>
-                      Bendahara / Admin Southern Base
-                    </div>
-                    <div style={{ height: "55px" }}></div>
-                    <div
-                      style={{
-                        borderTop: "1px solid #111827",
-                        paddingTop: "4px",
-                        fontWeight: "700",
-                      }}
-                    >
-                      {user.name}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-          </main>
+              <div className="print-section-title">
+                Riwayat Pembayaran Kas — {user.name} ({labelPeriodeCetak()})
+              </div>
+              <table className="print-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: "40px" }}>NO</th>
+                    <th style={{ width: "120px" }}>TANGGAL</th>
+                    <th>KETERANGAN</th>
+                    <th style={{ width: "140px", textAlign: "right" }}>
+                      NOMINAL
+                    </th>
+                    <th style={{ width: "110px", textAlign: "center" }}>
+                      STATUS
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {myTransaksiFiltered.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: "center" }}>
+                        Belum ada riwayat transaksi pada periode ini.
+                      </td>
+                    </tr>
+                  ) : (
+                    myTransaksiFiltered.map((item, idx) => (
+                      <tr key={item.id}>
+                        <td>{idx + 1}</td>
+                        <td>{item.transaction_date || "-"}</td>
+                        <td>{item.payer_name || item.keterangan || "-"}</td>
+                        <td style={{ textAlign: "right", fontWeight: "600" }}>
+                          +Rp{" "}
+                          {parseInt(
+                            item.amount || item.jumlah || 0
+                          ).toLocaleString("id-ID")}
+                        </td>
+                        <td style={{ textAlign: "center", fontWeight: "600" }}>
+                          {formatStatusLabel(item.status)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </>
+          )}
         </div>
       )}
     </div>
