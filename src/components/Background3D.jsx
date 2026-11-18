@@ -10,7 +10,7 @@ const Background3D = ({ role = "anggota", isLogin = false }) => {
 
     // 1. Scene, Fog & Camera
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#030306");
+    // scene.background is transparent for smooth blending
     scene.fog = new THREE.FogExp2("#030306", 0.048);
 
     const camera = new THREE.PerspectiveCamera(
@@ -22,6 +22,7 @@ const Background3D = ({ role = "anggota", isLogin = false }) => {
     camera.position.set(0, 0.15, 6.8);
 
     const renderer = new THREE.WebGLRenderer({
+      alpha: true,
       antialias: true,
       powerPreference: "high-performance",
     });
@@ -130,7 +131,11 @@ const Background3D = ({ role = "anggota", isLogin = false }) => {
 
     // 5. Konstruksi Utama: Southern Base Cyber-Vault Mechanism
     const vaultGroup = new THREE.Group();
-    vaultGroup.position.set(isLogin ? 0 : 1.75, isLogin ? 0.25 : 0, 0);
+    const isWide = window.innerWidth >= 1024;
+    const targetX = isLogin ? (isWide ? 2.2 : 0) : (isWide ? 1.85 : 0);
+    const targetY = isLogin ? (isWide ? 0 : 0.8) : 0;
+    const targetZ = isLogin && !isWide ? -1.2 : 0;
+    vaultGroup.position.set(targetX, targetY, targetZ);
     scene.add(vaultGroup);
 
     // A. Cincin Bezel Utama Bertingkat
@@ -321,7 +326,9 @@ const Background3D = ({ role = "anggota", isLogin = false }) => {
 
       vaultGroup.rotation.y += (targetRotY - vaultGroup.rotation.y) * 0.06;
       vaultGroup.rotation.x += (targetRotX - vaultGroup.rotation.x) * 0.06;
-      vaultGroup.position.y = (isLogin ? 0.25 : 0) + Math.sin(t * 1.1) * 0.08;
+      const isWideNow = window.innerWidth >= 1024;
+      const basePosY = isLogin ? (isWideNow ? 0 : 0.8) : 0;
+      vaultGroup.position.y = basePosY + Math.sin(t * 1.1) * 0.08;
 
       // Rotasi cincin giroskop & pita energi
       gimbalOuter.rotation.x = t * 0.55 + scrollSpin;
@@ -379,8 +386,9 @@ const Background3D = ({ role = "anggota", isLogin = false }) => {
         position: "fixed",
         top: 0,
         left: 0,
-        width: "100vw",
-        height: "100vh",
+        width: "100%",
+        height: "100%",
+        overflow: "hidden",
         pointerEvents: "none",
         zIndex: 0,
       }}

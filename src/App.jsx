@@ -1,8 +1,42 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import InputForm from "./components/InputForm";
 import Background3D from "./components/Background3D";
+import Mini3D from "./components/Mini3D";
 import { supabase } from "./supabaseClient";
 import logoImg from "./assets/logo.jpeg";
+import "./index.css";
+import {
+  Shield,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  User,
+  Users,
+  Calendar,
+  Printer,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Sparkles,
+  Activity,
+  Lock,
+  Mail,
+  LogOut,
+  RefreshCw,
+  ArrowUpRight,
+  ArrowDownRight,
+  Filter,
+  AlertCircle,
+  FileText,
+  SlidersHorizontal,
+  ChevronRight,
+  Download,
+  Search,
+  PieChart,
+  Check,
+} from "lucide-react";
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -22,6 +56,10 @@ function App() {
   const [selectedProof, setSelectedProof] = useState(null);
 
   const [toastMsg, setToastMsg] = useState("");
+  const [activeTerrain, setActiveTerrain] = useState("all"); // 'all' | 'in' | 'out'
+  const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'settlement' | 'pending' | 'ditolak'
+  const [searchQuery, setSearchQuery] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   const showToast = (message) => {
     setToastMsg(message);
@@ -133,6 +171,19 @@ function App() {
     } catch (err) {
       console.error("Gagal memuat daftar anggota:", err.message);
     }
+  };
+
+  const refreshAllData = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      fetchTransaksi(),
+      fetchKasKeluar(),
+      user?.role === "admin" ? fetchAnggota() : Promise.resolve(),
+    ]);
+    setTimeout(() => {
+      setRefreshing(false);
+      showToast("Data kas berhasil disinkronisasi");
+    }, 450);
   };
 
   useEffect(() => {
@@ -323,84 +374,138 @@ function App() {
     setFilterStartDate("");
     setFilterEndDate("");
     setFilterMemberName("");
+    setSearchQuery("");
+    setStatusFilter("all");
   };
 
-  const myTransaksiAll = transaksi.filter((item) => {
-    if (!user?.name) return false;
-    const currentUserName = user.name.toLowerCase().trim();
-    const rawPayer = (item.payer_name || item.keterangan || "").toLowerCase();
-    const cleanPayer = rawPayer.split("-")[0].trim();
-    if (!cleanPayer) return false;
-    return cleanPayer.includes(currentUserName) || currentUserName.includes(cleanPayer);
-  });
+  const myTransaksiAll = useMemo(() => {
+    return transaksi.filter((item) => {
+      if (!user?.name) return false;
+      const currentUserName = user.name.toLowerCase().trim();
+      const rawPayer = (item.payer_name || item.keterangan || "").toLowerCase();
+      const cleanPayer = rawPayer.split("-")[0].trim();
+      if (!cleanPayer) return false;
+      return cleanPayer.includes(currentUserName) || currentUserName.includes(cleanPayer);
+    });
+  }, [transaksi, user]);
 
-  const myTransaksiFiltered = myTransaksiAll.filter((item) =>
-    isWithinDateRange(item.transaction_date, filterStartDate, filterEndDate)
-  );
+  const myTransaksiFiltered = useMemo(() => {
+    return myTransaksiAll.filter((item) => {
+      const matchesDate = isWithinDateRange(item.transaction_date, filterStartDate, filterEndDate);
+      const matchesSearch = searchQuery
+        ? (item.payer_name || item.keterangan || "").toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+          String(item.amount || item.jumlah || "").includes(searchQuery.trim())
+        : true;
+      const matchesStatus =
+        statusFilter === "all"
+          ? true
+          : statusFilter === "settlement"
+          ? (item.status || "").toLowerCase() === "settlement" || (item.status || "").toLowerCase() === "lunas"
+          : (item.status || "").toLowerCase() === statusFilter;
 
-  const totalIn = transaksi
-    .filter((t) => {
-      const st = (t.status || "").toLowerCase();
-      return st === "settlement" || st === "lunas";
-    })
-    .reduce((acc, c) => acc + (parseInt(c.amount || c.jumlah || 0) || 0), 0);
+      return matchesDate && matchesSearch && matchesStatus;
+    });
+  }, [myTransaksiAll, filterStartDate, filterEndDate, searchQuery, statusFilter]);
 
-  const totalOut = kasKeluar.reduce(
-    (acc, c) => acc + (parseInt(c.amount || 0) || 0),
-    0
-  );
+  const totalIn = useMemo(() => {
+    return transaksi
+      .filter((t) => {
+        const st = (t.status || "").toLowerCase();
+        return st === "settlement" || st === "lunas";
+      })
+      .reduce((acc, c) => acc + (parseInt(c.amount || c.jumlah || 0) || 0), 0);
+  }, [transaksi]);
+
+  const totalOut = useMemo(() => {
+    return kasKeluar.reduce(
+      (acc, c) => acc + (parseInt(c.amount || 0) || 0),
+      0
+    );
+  }, [kasKeluar]);
 
   const saldoBersih = totalIn - totalOut;
 
-  const totalVerifiedUser = myTransaksiAll
-    .filter((t) => {
-      const st = (t.status || "").toLowerCase();
-      return st === "settlement" || st === "lunas";
-    })
-    .reduce((acc, c) => acc + (parseInt(c.amount || c.jumlah || 0) || 0), 0);
+  const totalVerifiedUser = useMemo(() => {
+    return myTransaksiAll
+      .filter((t) => {
+        const st = (t.status || "").toLowerCase();
+        return st === "settlement" || st === "lunas";
+      })
+      .reduce((acc, c) => acc + (parseInt(c.amount || c.jumlah || 0) || 0), 0);
+  }, [myTransaksiAll]);
 
-  const myFilteredVerifiedUser = myTransaksiFiltered
-    .filter((t) => {
-      const st = (t.status || "").toLowerCase();
-      return st === "settlement" || st === "lunas";
-    })
-    .reduce((acc, c) => acc + (parseInt(c.amount || c.jumlah || 0) || 0), 0);
+  const myFilteredVerifiedUser = useMemo(() => {
+    return myTransaksiFiltered
+      .filter((t) => {
+        const st = (t.status || "").toLowerCase();
+        return st === "settlement" || st === "lunas";
+      })
+      .reduce((acc, c) => acc + (parseInt(c.amount || c.jumlah || 0) || 0), 0);
+  }, [myTransaksiFiltered]);
 
-  const filteredTransaksiAdmin = transaksi.filter((item) => {
-    const matchesDateRange = isWithinDateRange(
-      item.transaction_date,
-      filterStartDate,
-      filterEndDate
+  const filteredTransaksiAdmin = useMemo(() => {
+    return transaksi.filter((item) => {
+      const matchesDateRange = isWithinDateRange(
+        item.transaction_date,
+        filterStartDate,
+        filterEndDate
+      );
+      const matchesName = filterMemberName
+        ? (item.payer_name || item.keterangan || "")
+            .toLowerCase()
+            .includes(filterMemberName.toLowerCase().trim())
+        : true;
+      const matchesSearch = searchQuery
+        ? (item.payer_name || item.keterangan || "").toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+          String(item.amount || item.jumlah || "").includes(searchQuery.trim())
+        : true;
+      const matchesStatus =
+        statusFilter === "all"
+          ? true
+          : statusFilter === "settlement"
+          ? (item.status || "").toLowerCase() === "settlement" || (item.status || "").toLowerCase() === "lunas"
+          : (item.status || "").toLowerCase() === statusFilter;
+
+      return matchesDateRange && matchesName && matchesSearch && matchesStatus;
+    });
+  }, [transaksi, filterStartDate, filterEndDate, filterMemberName, searchQuery, statusFilter]);
+
+  const filteredKasKeluarAdmin = useMemo(() => {
+    return kasKeluar.filter((item) => {
+      const matchesDate = isWithinDateRange(item.expense_date, filterStartDate, filterEndDate);
+      const matchesSearch = searchQuery
+        ? (item.title || "").toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+          String(item.amount || "").includes(searchQuery.trim())
+        : true;
+      return matchesDate && matchesSearch;
+    });
+  }, [kasKeluar, filterStartDate, filterEndDate, searchQuery]);
+
+  const filteredTotalIn = useMemo(() => {
+    return filteredTransaksiAdmin
+      .filter((t) => {
+        const st = (t.status || "").toLowerCase();
+        return st === "settlement" || st === "lunas";
+      })
+      .reduce((acc, c) => acc + (parseInt(c.amount || c.jumlah || 0) || 0), 0);
+  }, [filteredTransaksiAdmin]);
+
+  const filteredTotalOut = useMemo(() => {
+    return filteredKasKeluarAdmin.reduce(
+      (acc, c) => acc + (parseInt(c.amount || 0) || 0),
+      0
     );
-    const matchesName = filterMemberName
-      ? (item.payer_name || item.keterangan || "")
-          .toLowerCase()
-          .includes(filterMemberName.toLowerCase().trim())
-      : true;
-    return matchesDateRange && matchesName;
-  });
-
-  const filteredKasKeluarAdmin = kasKeluar.filter((item) =>
-    isWithinDateRange(item.expense_date, filterStartDate, filterEndDate)
-  );
-
-  const filteredTotalIn = filteredTransaksiAdmin
-    .filter((t) => {
-      const st = (t.status || "").toLowerCase();
-      return st === "settlement" || st === "lunas";
-    })
-    .reduce((acc, c) => acc + (parseInt(c.amount || c.jumlah || 0) || 0), 0);
-
-  const filteredTotalOut = filteredKasKeluarAdmin.reduce(
-    (acc, c) => acc + (parseInt(c.amount || 0) || 0),
-    0
-  );
+  }, [filteredKasKeluarAdmin]);
 
   const filteredSaldoBersih = filteredTotalIn - filteredTotalOut;
 
   const hasActiveFilter = Boolean(
-    filterStartDate || filterEndDate || filterMemberName
+    filterStartDate || filterEndDate || filterMemberName || searchQuery || statusFilter !== "all"
   );
+
+  const pendingCount = transaksi.filter(
+    (t) => !t.status || t.status.toLowerCase() === "pending"
+  ).length;
 
   const formatTanggalIndo = (dateStr) => {
     if (!dateStr) return "";
@@ -440,7 +545,102 @@ function App() {
     return "Menunggu";
   };
 
-  // --- FUNGSI CETAK LAPORAN MENGGUNAKAN JENDELA BARU (POP-UP) ---
+  const tanggalCetak = new Date().toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  // --- RASIO KEUANGAN & PROGRESS SEHAT ---
+  const kasHealthRatio = useMemo(() => {
+    if (totalIn <= 0) return 100;
+    const ratio = Math.max(0, Math.min(100, Math.round(((totalIn - totalOut) / totalIn) * 100)));
+    return ratio;
+  }, [totalIn, totalOut]);
+
+  // --- EXPORT TO CSV EXCEL FILE ---
+  const handleExportCSV = () => {
+    const escapeCsv = (str) => `"${String(str ?? "").replace(/"/g, '""')}"`;
+    let rows = [];
+
+    if (isAdmin) {
+      rows.push(["LAPORAN KAS SOUTHERN BASE", `Periode: ${labelPeriodeCetak()}`]);
+      rows.push(["Dicetak Oleh:", user?.name || "Admin", "Tanggal:", tanggalCetak]);
+      rows.push([]);
+      rows.push(["RINCIAN PEMBAYARAN KAS MASUK"]);
+      rows.push(["No", "Tanggal", "Pembayar / Anggota", "Nominal (Rp)", "Status", "Metode"]);
+
+      filteredTransaksiAdmin.forEach((t, i) => {
+        rows.push([
+          i + 1,
+          t.transaction_date || "-",
+          t.payer_name || t.keterangan || "-",
+          parseInt(t.amount || t.jumlah || 0),
+          formatStatusLabel(t.status),
+          t.payment_method || "DANA",
+        ]);
+      });
+
+      rows.push([]);
+      rows.push(["RINCIAN PENGELUARAN KAS"]);
+      rows.push(["No", "Tanggal", "Keterangan Pengeluaran", "Nominal (Rp)"]);
+
+      filteredKasKeluarAdmin.forEach((k, i) => {
+        rows.push([
+          i + 1,
+          k.expense_date || "-",
+          k.title || "-",
+          parseInt(k.amount || 0),
+        ]);
+      });
+
+      rows.push([]);
+      rows.push(["REKAPITULASI"]);
+      rows.push(["Total Pemasukan Disetujui", filteredTotalIn]);
+      rows.push(["Total Pengeluaran Kas", filteredTotalOut]);
+      rows.push(["Saldo Bersih", filteredSaldoBersih]);
+    } else {
+      rows.push([`RIWAYAT PEMBAYARAN KAS — ${user?.name || "ANGGOTA"}`]);
+      rows.push(["Periode:", labelPeriodeCetak()]);
+      rows.push([]);
+      rows.push(["No", "Tanggal", "Keterangan", "Nominal (Rp)", "Status"]);
+
+      myTransaksiFiltered.forEach((t, i) => {
+        rows.push([
+          i + 1,
+          t.transaction_date || "-",
+          t.payer_name || t.keterangan || "-",
+          parseInt(t.amount || t.jumlah || 0),
+          formatStatusLabel(t.status),
+        ]);
+      });
+
+      rows.push([]);
+      rows.push(["Total Disetujui Periode Ini", myFilteredVerifiedUser]);
+    }
+
+    const csvContent =
+      "\uFEFF" +
+      rows
+        .map((r) => r.map(escapeCsv).join(","))
+        .join("\r\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute(
+      "download",
+      `Laporan_Kas_SouthernBase_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast("File CSV berhasil diexport!");
+  };
+
+  // --- PRINT PDF POPUP WINDOW ---
   const handlePrintReport = () => {
     const printWindow = window.open("", "_blank", "width=950,height=750");
     if (!printWindow) {
@@ -643,7 +843,7 @@ function App() {
             width: 60px;
             height: 60px;
             border-radius: 6px;
-            object-fit: contain; /* Memastikan logo tampil utuh, tidak terpotong */
+            object-fit: contain;
             background-color: #ffffff;
           }
           .header-title {
@@ -773,539 +973,1131 @@ function App() {
     printWindow.document.close();
   };
 
-  const tanggalCetak = new Date().toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
   return (
-    <div style={styles.appWrapper}>
-      <style>{`
-        body, html {
-          margin: 0;
-          padding: 0;
-          background: #030306;
-        }
-        @keyframes loginFloatUp {
-          0% { opacity: 0; transform: translateY(24px) scale(0.96); }
-          60% { transform: translateY(-4px) scale(1.01); }
-          100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes logoPop {
-          0% { opacity: 0; transform: scale(0.6); }
-          70% { transform: scale(1.08); }
-          100% { opacity: 1; transform: scale(1); }
-        }
-        @keyframes shakeError {
-          0%, 100% { transform: translateX(0); }
-          20%, 60% { transform: translateX(-6px); }
-          40%, 80% { transform: translateX(6px); }
-        }
-        .login-card-animated { animation: loginFloatUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-        .logo-animated { animation: logoPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s backwards; }
-        .shake-animated { animation: shakeError 0.35s ease-in-out; }
-        .form-field { transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease; }
-        .form-field:focus {
-          border-color: #3b82f6 !important;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
-          transform: translateY(-1px);
-          outline: none;
-        }
-        .btn-action { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        .btn-action:hover {
-          filter: brightness(1.12);
-          transform: translateY(-1.5px);
-          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-        .btn-action:active { transform: translateY(0) scale(0.98); }
-      `}</style>
+    <div className="relative min-h-screen text-zinc-100 selection:bg-orange-500/30 selection:text-white">
+      {/* Background Lighting Halos */}
+      <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-orange-600/10 blur-[130px] pointer-events-none z-0" />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-blue-600/10 blur-[150px] pointer-events-none z-0" />
 
-      <div className="screen-only">
-        {toastMsg && <div style={styles.toastContainer}>{toastMsg}</div>}
+      {/* Toast Notification with Progress Bar */}
+      {toastMsg && (
+        <div className="fixed bottom-6 right-6 z-[99999] animate-fade-up">
+          <div className="flex items-center gap-3 px-5 py-3.5 bg-zinc-950/90 border border-zinc-700/60 rounded-xl shadow-[0_10px_35px_rgba(0,0,0,0.8)] backdrop-blur-xl">
+            <Sparkles className="w-4 h-4 text-orange-400 animate-spin" style={{ animationDuration: "3s" }} />
+            <span className="text-xs font-semibold tracking-wide text-zinc-200">{toastMsg}</span>
+          </div>
+        </div>
+      )}
 
-        {selectedProof && (
-          <div onClick={() => setSelectedProof(null)} style={styles.modalOverlay}>
-            <div onClick={(e) => e.stopPropagation()} style={styles.modalContent} className="login-card-animated">
-              <h4 style={styles.modalHeader}>Bukti Pembayaran</h4>
-              <img src={selectedProof} alt="Bukti Pembayaran" style={styles.proofImg} />
-              <button onClick={() => setSelectedProof(null)} style={styles.btnCloseModal} className="btn-action">
-                Tutup
+      {/* Proof Preview Modal */}
+      {selectedProof && (
+        <div
+          onClick={() => setSelectedProof(null)}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md z-[99999] flex items-center justify-center p-4 animate-fade-up"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="cyber-card p-6 max-w-lg w-full text-center relative border border-zinc-700/60"
+          >
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-zinc-800">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-orange-400" />
+                <h4 className="text-sm font-bold text-white tracking-wide">Bukti Verifikasi Pembayaran</h4>
+              </div>
+              <button
+                onClick={() => setSelectedProof(null)}
+                className="text-zinc-400 hover:text-white transition text-xs font-mono px-2 py-1 bg-zinc-800/80 rounded"
+              >
+                ESC / Tutup ✕
               </button>
             </div>
+            <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/70 p-2">
+              <img
+                src={selectedProof}
+                alt="Bukti Transfer"
+                className="w-full max-h-[60vh] object-contain rounded-lg"
+              />
+            </div>
+            <button
+              onClick={() => setSelectedProof(null)}
+              className="mt-5 w-full py-2.5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-red-950/40"
+            >
+              Tutup Pratinjau
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {!user ? (
-          <div style={styles.loginContainer}>
-            <Background3D role="anggota" isLogin={true} />
-            <div style={{ ...styles.loginCard, position: "relative", zIndex: 1 }} className="login-card-animated">
-              <div style={{ textAlign: "center", marginBottom: "20px" }}>
-                <img src={logoImg} alt="Logo" style={{ width: "72px", borderRadius: "10px", objectFit: "contain", backgroundColor: "#ffffff" }} className="logo-animated" />
-                <h2 style={styles.loginTitle}>SOUTHERN BASE</h2>
-                <p style={styles.loginSub}>Sistem Informasi Kas Organisasi</p>
-              </div>
+      {/* 3D Kinetic Background Engine */}
+      <Background3D role={user ? user.role : "anggota"} isLogin={!user} />
 
-              {loginError && <div style={styles.errorBox} className="shake-animated">{loginError}</div>}
-
-              <form onSubmit={handleLogin}>
-                <div style={{ marginBottom: "14px" }}>
-                  <label style={styles.label}>Alamat Email</label>
-                  <input
-                    type="email"
-                    placeholder="email@domain.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    style={styles.input}
-                    className="form-field"
-                  />
+      {/* VIEW: LOGIN PORTAL */}
+      {!user ? (
+        <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-8">
+          <div className="max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            
+            {/* Left Column: Southern Base Community Branding */}
+            <div className="lg:col-span-6 space-y-6">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/25 text-[10px] font-mono tracking-widest text-orange-400 uppercase mb-3 shadow-[0_0_20px_rgba(249,115,22,0.2)]">
+                  <span className="pulse-dot-orange" />
+                  SOUTHERN BASE // COMMUNITY VAULT V2.5
                 </div>
 
-                <div style={{ marginBottom: "20px" }}>
-                  <label style={styles.label}>Kata Sandi</label>
-                  <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      style={{ ...styles.input, paddingRight: "40px" }}
-                      className="form-field"
-                    />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={styles.btnEye}>
-                      {showPassword ? "👁️" : "🙈"}
-                    </button>
+                <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-titanium uppercase leading-none">
+                  ONE BASE.<br />
+                  <span className="text-gold-titanium">ONE SOLIDARITY.</span>
+                </h1>
+
+                <p className="text-xs sm:text-sm text-zinc-400 mt-3 max-w-md leading-relaxed">
+                  Platform transparansi & pembukuan kas resmi Southern Base. Rekapitulasi keuangan akurat, terpercaya, dan aman untuk mengawal setiap pergerakan kita bersama.
+                </p>
+              </div>
+
+              {/* Login Form Terminal */}
+              <div className="cyber-card p-6 sm:p-7 border border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.85)] max-w-md">
+                <div className="flex items-center gap-3 pb-4 mb-4 border-b border-zinc-800/80">
+                  <img
+                    src={logoImg}
+                    alt="Logo Southern Base"
+                    className="w-10 h-10 rounded-xl object-contain bg-white p-1 border border-white/20 shadow-md"
+                  />
+                  <div>
+                    <h3 className="text-sm font-bold text-white tracking-wide uppercase">Portal Akses Anggota</h3>
+                    <p className="text-[11px] text-zinc-400">Silakan otorisasi akun Southern Base Anda</p>
                   </div>
                 </div>
 
-                <button type="submit" style={styles.btnLogin} disabled={loadingLogin} className="btn-action">
-                  {loadingLogin ? "Memeriksa Data..." : "Masuk"}
-                </button>
-              </form>
-            </div>
-          </div>
-        ) : (
-          <div style={{ position: "relative", zIndex: 10 }}>
-            <Background3D role={user.role} isLogin={false} />
+                {loginError && (
+                  <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-red-950/60 border border-red-800 text-red-200 text-xs font-medium">
+                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                    <span>{loginError}</span>
+                  </div>
+                )}
 
-            <header style={styles.navbarSticky}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <img src={logoImg} alt="Logo" style={{ height: "30px", width: "30px", borderRadius: "4px", objectFit: "contain", backgroundColor: "#ffffff" }} />
-                <span style={styles.navTitle}>
-                  SOUTHERN BASE {isAdmin ? "— MASTER CONTROL" : "— MEMBER PORTAL"}
-                </span>
-              </div>
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div>
+                    <label className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      <span>Alamat Email</span>
+                      <Mail className="w-3.5 h-3.5 text-zinc-500" />
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="nama@southernbase.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-zinc-100 placeholder-zinc-600 text-xs font-medium transition outline-none"
+                    />
+                  </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={styles.userBadge}>
-                  <span style={{ fontSize: "12px", color: "#e4e4e7", fontWeight: "600" }}>{user.name}</span>
-                  <span style={isAdmin ? styles.badgeAdmin : styles.badgeMember}>
-                    {user.role ? user.role.toUpperCase() : "MEMBER"}
-                  </span>
-                </div>
-                <button onClick={handleLogout} style={styles.btnLogout} className="btn-action">
-                  🚪 Keluar
-                </button>
-              </div>
-            </header>
-
-            <main style={{ maxWidth: "1040px", margin: "20px auto", padding: "0 16px" }}>
-              <div style={styles.heroGrid}>
-                <div style={styles.card} className="login-card-animated">
-                  <span style={styles.cardHeaderLabel}>
-                    {isAdmin ? "TOTAL SALDO BERSIH KESELURUHAN" : "TOTAL KAS DIBAYAR"}
-                  </span>
-                  <h1 style={styles.statNumber}>
-                    Rp {(isAdmin ? saldoBersih : totalVerifiedUser).toLocaleString("id-ID")}
-                  </h1>
-                  {isAdmin && (
-                    <div style={{ display: "flex", gap: "16px", fontSize: "12px", marginTop: "6px" }}>
-                      <span style={{ color: "#a1a1aa" }}>
-                        Masuk: <strong style={{ color: "#22c55e" }}>+Rp {totalIn.toLocaleString("id-ID")}</strong>
-                      </span>
-                      <span style={{ color: "#a1a1aa" }}>
-                        Keluar: <strong style={{ color: "#ef4444" }}>-Rp {totalOut.toLocaleString("id-ID")}</strong>
-                      </span>
+                  <div>
+                    <label className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      <span>Kata Sandi</span>
+                      <Lock className="w-3.5 h-3.5 text-zinc-500" />
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="w-full px-3.5 py-2.5 pr-11 rounded-xl bg-zinc-950/80 border border-zinc-800 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-zinc-100 placeholder-zinc-600 text-xs font-medium transition outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loadingLogin}
+                    className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-xs tracking-wider uppercase transition shadow-[0_0_25px_rgba(249,115,22,0.35)] btn-shimmer flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {loadingLogin ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Memverifikasi Akun...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Masuk ke Portal Kas</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {/* Telemetry Pills */}
+                <div className="mt-5 pt-4 border-t border-zinc-800/80 flex items-center justify-between text-[10px] text-zinc-500 font-mono">
+                  <span className="flex items-center gap-1.5">
+                    <span className="pulse-dot-green" /> CLOUD SYNCED
+                  </span>
+                  <span>256-BIT ENCRYPTED</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Dedicated 3D Kinetic Vault Stage */}
+            <div className="hidden lg:block lg:col-span-6 min-h-[500px] pointer-events-none" />
+
+          </div>
+        </div>
+      ) : (
+        /* VIEW: AUTHENTICATED DASHBOARD */
+        <div className="relative z-10 pb-16">
+          {/* Top Sticky Command Navbar */}
+          <header className="sticky top-0 z-50 px-4 sm:px-8 py-3 bg-zinc-950/80 border-b border-white/10 backdrop-blur-xl shadow-2xl">
+            <div className="max-w-6xl mx-auto flex items-center justify-between">
+              {/* Logo, Mini3D Ring & Equalizer Wave */}
+              <div className="flex items-center gap-3">
+                <div className="relative flex items-center gap-2">
+                  <img
+                    src={logoImg}
+                    alt="Logo"
+                    className="w-8 h-8 rounded-lg object-contain bg-white p-0.5 border border-white/20 shadow-md"
+                  />
+                  <div className="hidden sm:block">
+                    <Mini3D color={isAdmin ? 0x3b82f6 : 0xf97316} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-extrabold tracking-tight text-white uppercase">
+                      SOUTHERN BASE
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider ${
+                        isAdmin
+                          ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                          : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      }`}
+                    >
+                      {isAdmin ? "MASTER CONTROL" : "MEMBER PORTAL"}
+                    </span>
+                  </div>
+                  {/* Cyber Equalizer Effect */}
+                  <div className="hidden sm:flex items-center gap-1 mt-0.5">
+                    <span className="eq-bar eq-bar-1" />
+                    <span className="eq-bar eq-bar-2" />
+                    <span className="eq-bar eq-bar-3" />
+                    <span className="eq-bar eq-bar-4" />
+                    <span className="text-[10px] font-mono text-zinc-400 ml-1.5">
+                      LIVE SYSTEM SYNCHRONIZED
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* User Controls & Logout */}
+              <div className="flex items-center gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={refreshAllData}
+                  disabled={refreshing}
+                  title="Segarkan Data"
+                  className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-orange-400" : ""}`} />
+                </button>
+
+                <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800">
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center text-black font-black text-xs">
+                    {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                  </div>
+                  <div className="text-left hidden md:block">
+                    <div className="text-xs font-bold text-white leading-tight">{user.name}</div>
+                    <div className="text-[9px] font-mono text-zinc-400 uppercase">{user.role}</div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 hover:border-red-500 text-xs font-semibold transition"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Keluar</span>
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Main Dashboard Container */}
+          <main className="max-w-6xl mx-auto px-4 sm:px-6 mt-6 space-y-6">
+            {/* HERO STATS / THREE TERRAINS HUD */}
+            <div className="space-y-4">
+              {/* Header Headline Tag */}
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                <div>
+                  <div className="inline-flex items-center gap-2 text-[10px] font-mono text-orange-400 uppercase tracking-widest mb-1">
+                    <span className="pulse-dot-orange" />
+                    <span>SOUTHERN BASE ARCHITECTURE // KEUANGAN & KAS ORGANISASI</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black text-titanium uppercase tracking-tight">
+                    {isAdmin ? "Status Perbendaharaan Utama" : `Ringkasan Saldo Kas • ${user.name}`}
+                  </h2>
+                </div>
+
+                {/* Quick Action Badges: Export CSV & Cetak PDF */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleExportCSV}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-950/40 btn-shimmer transition"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export CSV</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handlePrintReport}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-950/40 btn-shimmer transition"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Cetak PDF</span>
+                  </button>
+
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={handleSetBulanIni}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-semibold transition"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>Bulan Ini</span>
+                    </button>
                   )}
                 </div>
+              </div>
 
-                <div style={styles.card} className="login-card-animated">
-                  <span style={styles.cardHeaderLabel}>PENGATURAN KREDENSIAL</span>
-                  <form onSubmit={handleUpdateProfilePribadi} style={{ marginTop: "10px" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
-                      <input
-                        type="text"
-                        placeholder="Nama Pengguna"
-                        value={newUsername}
-                        onChange={(e) => setNewUsername(e.target.value)}
-                        required
-                        style={styles.inputSm}
-                        className="form-field"
-                      />
-                      <input
-                        type="password"
-                        placeholder="Sandi Baru (Opsional)"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        style={styles.inputSm}
-                        className="form-field"
-                      />
-                    </div>
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <button type="submit" style={styles.btnSaveSm} className="btn-action">
-                        Perbarui Akun
-                      </button>
-                      <button type="button" onClick={handleLogout} style={{ ...styles.btnLogout, width: "auto", whiteSpace: "nowrap" }} className="btn-action">
-                        🚪 Keluar
-                      </button>
-                    </div>
-                  </form>
+              {/* THREE TERRAINS INTERACTIVE CARDS */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Terrain 1: Total Saldo Bersih */}
+                <div
+                  onClick={() => setActiveTerrain(activeTerrain === "all" ? "all" : "all")}
+                  className={`terrain-card ${
+                    activeTerrain === "all" ? "active-orange" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-zinc-400 mb-2">
+                    <span className="text-[10px] font-mono tracking-wider uppercase">
+                      {isAdmin ? "TERRAIN 01 // TOTAL SALDO BERSIH" : "TERRAIN 01 // KAS SAYA TERVERIFIKASI"}
+                    </span>
+                    <Wallet className="w-4 h-4 text-orange-400" />
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-gold-titanium tracking-tight font-mono-tech">
+                    Rp {(isAdmin ? saldoBersih : totalVerifiedUser).toLocaleString("id-ID")}
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-[11px] text-zinc-400 pt-2 border-t border-white/5">
+                    <span className="flex items-center gap-1 text-emerald-400">
+                      <span className="pulse-dot-green" /> 100% Terverifikasi
+                    </span>
+                    <span className="font-mono text-zinc-500">REALTIME</span>
+                  </div>
+                </div>
+
+                {/* Terrain 2: Total Pemasukan Kas */}
+                <div
+                  onClick={() => setActiveTerrain(activeTerrain === "in" ? "all" : "in")}
+                  className={`terrain-card ${
+                    activeTerrain === "in" ? "active-blue" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-zinc-400 mb-2">
+                    <span className="text-[10px] font-mono tracking-wider uppercase">
+                      TERRAIN 02 // TOTAL KAS MASUK
+                    </span>
+                    <ArrowUpRight className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-neon-emerald tracking-tight font-mono-tech">
+                    +Rp {totalIn.toLocaleString("id-ID")}
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-[11px] text-zinc-400 pt-2 border-t border-white/5">
+                    <span>{transaksi.length} Transaksi Terdata</span>
+                    {pendingCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">
+                        {pendingCount} Menunggu
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Terrain 3: Total Pengeluaran Kas */}
+                <div
+                  onClick={() => setActiveTerrain(activeTerrain === "out" ? "all" : "out")}
+                  className={`terrain-card ${
+                    activeTerrain === "out" ? "active-dark" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-zinc-400 mb-2">
+                    <span className="text-[10px] font-mono tracking-wider uppercase">
+                      TERRAIN 03 // TOTAL PENGELUARAN
+                    </span>
+                    <ArrowDownRight className="w-4 h-4 text-red-400" />
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-red-400 tracking-tight font-mono-tech">
+                    -Rp {totalOut.toLocaleString("id-ID")}
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-[11px] text-zinc-400 pt-2 border-t border-white/5">
+                    <span>{kasKeluar.length} Pos Pengeluaran</span>
+                    <span className="text-zinc-500 font-mono">AUDITED</span>
+                  </div>
                 </div>
               </div>
 
-              {!isAdmin && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px", marginTop: "16px" }}>
-                  <div style={styles.card} className="login-card-animated">
-                    <h3 style={styles.cardTitle}>Formulir Pembayaran Kas</h3>
-                    <InputForm onSuccess={fetchTransaksi} />
+              {/* Financial Health Meter Bar */}
+              {isAdmin && (
+                <div className="cyber-card p-4">
+                  <div className="flex items-center justify-between text-xs mb-2">
+                    <div className="flex items-center gap-2">
+                      <PieChart className="w-4 h-4 text-orange-400" />
+                      <span className="font-bold text-white uppercase tracking-wider text-[11px]">
+                        Rasio Efisiensi Anggaran & Kesehatan Kas
+                      </span>
+                    </div>
+                    <span className="font-mono font-bold text-emerald-400 text-xs">
+                      {kasHealthRatio}% Kas Bersih Tersimpan
+                    </span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-zinc-900 overflow-hidden flex">
+                    <div
+                      className="bg-gradient-to-r from-emerald-500 to-cyan-500 h-full transition-all duration-700"
+                      style={{ width: `${kasHealthRatio}%` }}
+                    />
+                    <div
+                      className="bg-red-500 h-full transition-all duration-700"
+                      style={{ width: `${100 - kasHealthRatio}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-2 font-mono">
+                    <span>PEMASUKAN: Rp {totalIn.toLocaleString("id-ID")}</span>
+                    <span>PENGELUARAN: Rp {totalOut.toLocaleString("id-ID")}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* QUICK PROFILE CREDENTIAL MANAGER & NOTIFICATIONS */}
+            <div className="cyber-card p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-orange-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                      Pengaturan Akun & Kredensial Pribadi
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                    Perbarui nama tampilan atau ganti kata sandi akun Anda secara langsung.
+                  </p>
+                </div>
+
+                <form onSubmit={handleUpdateProfilePribadi} className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Nama Pengguna"
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    required
+                    className="px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-800 focus:border-orange-500 text-xs text-white placeholder-zinc-600 outline-none transition"
+                  />
+                  <input
+                    type="password"
+                    placeholder="Sandi Baru (Opsional)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-800 focus:border-orange-500 text-xs text-white placeholder-zinc-600 outline-none transition"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs btn-shimmer transition shadow-md shadow-emerald-950/30"
+                  >
+                    Simpan Akun
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* MEMBER WORKSPACE VIEW */}
+            {!isAdmin && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Left Column: Form Setoran Pembayaran */}
+                <div className="lg:col-span-5 cyber-card p-6">
+                  <div className="flex items-center gap-2 pb-3 mb-4 border-b border-zinc-800">
+                    <Wallet className="w-4 h-4 text-orange-400" />
+                    <h3 className="text-sm font-bold text-white tracking-wide">
+                      Formulir Pembayaran Kas
+                    </h3>
+                  </div>
+                  <InputForm onSuccess={fetchTransaksi} />
+                </div>
+
+                {/* Right Column: Member History Table */}
+                <div className="lg:col-span-7 cyber-card p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-zinc-800">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-blue-400" />
+                        <h3 className="text-sm font-bold text-white tracking-wide">
+                          Riwayat Pembayaran Saya
+                        </h3>
+                      </div>
+                      <span className="text-[11px] text-zinc-400">
+                        {myTransaksiFiltered.length} transaksi ditampilkan
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleExportCSV}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 text-xs font-semibold transition"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>CSV</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handlePrintReport}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-semibold transition"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>PDF</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div style={styles.card} className="login-card-animated">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
-                      <h3 style={{ ...styles.cardTitle, margin: 0 }}>Riwayat Pembayaran Saya</h3>
-                      <button type="button" onClick={handlePrintReport} style={{ ...styles.btnEdit, background: "#16a34a" }} className="btn-action">
-                        🖨️ Cetak PDF
+                  {/* Search & Status Filter Sub-Bar */}
+                  <div className="mb-4 space-y-2">
+                    <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800 flex flex-wrap items-center gap-2">
+                      <div className="relative flex-1 min-w-[160px]">
+                        <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Cari transaksi / keterangan..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          value={filterStartDate}
+                          onChange={(e) => setFilterStartDate(e.target.value)}
+                          className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 outline-none"
+                        />
+                        <span className="text-zinc-500 text-xs">-</span>
+                        <input
+                          type="date"
+                          value={filterEndDate}
+                          onChange={(e) => setFilterEndDate(e.target.value)}
+                          className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 outline-none"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleResetFilter}
+                        className="px-3 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300 transition"
+                      >
+                        Reset
                       </button>
                     </div>
 
-                    <div style={styles.subFormContainer}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "8px", alignItems: "end" }}>
-                        <div>
-                          <label style={{ ...styles.label, marginBottom: "4px" }}>Dari Tanggal (A):</label>
-                          <input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} style={{ ...styles.inputSm, colorScheme: "dark" }} className="form-field" />
-                        </div>
-                        <div>
-                          <label style={{ ...styles.label, marginBottom: "4px" }}>Sampai Tanggal (B):</label>
-                          <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} style={{ ...styles.inputSm, colorScheme: "dark" }} className="form-field" />
-                        </div>
-                        <button type="button" onClick={handleResetFilter} style={{ ...styles.btnEdit, background: "#27272a", height: "30px" }} className="btn-action">
-                          Reset
+                    {/* Status Pill Filters */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {[
+                        { id: "all", label: "Semua" },
+                        { id: "settlement", label: "Disetujui" },
+                        { id: "pending", label: "Menunggu" },
+                        { id: "ditolak", label: "Ditolak" },
+                      ].map((st) => (
+                        <button
+                          key={st.id}
+                          type="button"
+                          onClick={() => setStatusFilter(st.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition ${
+                            statusFilter === st.id
+                              ? "bg-orange-500 text-white shadow-md shadow-orange-950/40"
+                              : "bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800"
+                          }`}
+                        >
+                          {st.label}
                         </button>
-                      </div>
+                      ))}
                     </div>
+                  </div>
 
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={styles.table}>
-                        <thead>
+                  {/* Table */}
+                  <div className="overflow-x-auto">
+                    <table className="cyber-table">
+                      <thead>
+                        <tr>
+                          <th>TANGGAL</th>
+                          <th>NOMINAL</th>
+                          <th>STATUS</th>
+                          <th className="text-right">BUKTI</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {myTransaksiFiltered.length === 0 ? (
                           <tr>
-                            <th style={styles.th}>TANGGAL</th>
-                            <th style={styles.th}>NOMINAL</th>
-                            <th style={styles.th}>STATUS</th>
-                            <th style={{ ...styles.th, textAlign: "right" }}>DETAIL</th>
+                            <td colSpan="4" className="text-center py-8 text-zinc-500 text-xs">
+                              Belum ada catatan transaksi pada filter ini.
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {myTransaksiFiltered.length === 0 ? (
-                            <tr><td colSpan="4" style={styles.tdEmpty}>Belum ada riwayat transaksi pada periode ini.</td></tr>
-                          ) : (
-                            myTransaksiFiltered.map((item) => (
-                              <tr key={item.id} style={styles.tr}>
-                                <td style={styles.tdMuted}>{item.transaction_date || "-"}</td>
-                                <td style={styles.tdGreen}>+Rp {parseInt(item.amount || item.jumlah || 0).toLocaleString("id-ID")}</td>
-                                <td style={styles.td}>
-                                  <span style={((item.status || "").toLowerCase() === "settlement" || (item.status || "").toLowerCase() === "lunas") ? styles.badgeSuccess : (item.status || "").toLowerCase() === "ditolak" ? styles.badgeDanger : styles.badgePending}>
+                        ) : (
+                          myTransaksiFiltered.map((item) => {
+                            const isApproved =
+                              (item.status || "").toLowerCase() === "settlement" ||
+                              (item.status || "").toLowerCase() === "lunas";
+                            const isRejected = (item.status || "").toLowerCase() === "ditolak";
+
+                            return (
+                              <tr key={item.id}>
+                                <td className="text-zinc-400 font-mono text-xs">
+                                  {item.transaction_date || "-"}
+                                </td>
+                                <td className="font-bold text-emerald-400 font-mono">
+                                  +Rp {parseInt(item.amount || item.jumlah || 0).toLocaleString("id-ID")}
+                                </td>
+                                <td>
+                                  <span
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                      isApproved
+                                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                        : isRejected
+                                        ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                        : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                    }`}
+                                  >
+                                    <span
+                                      className={`w-1.5 h-1.5 rounded-full ${
+                                        isApproved ? "bg-emerald-400" : isRejected ? "bg-red-400" : "bg-amber-400"
+                                      }`}
+                                    />
                                     {formatStatusLabel(item.status)}
                                   </span>
                                 </td>
-                                <td style={{ ...styles.td, textAlign: "right" }}>
+                                <td className="text-right">
                                   {item.description && item.description.startsWith("data:image") && (
-                                    <button onClick={() => setSelectedProof(item.description)} style={styles.btnProof} className="btn-action">
-                                      Lihat Bukti
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedProof(item.description)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30 text-[11px] font-semibold transition"
+                                    >
+                                      <Eye className="w-3 h-3" />
+                                      <span>Lihat</span>
                                     </button>
                                   )}
                                 </td>
                               </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {isAdmin && (
-                <>
-                  <div style={{ ...styles.card, marginTop: "16px", border: "1px solid rgba(59, 130, 246, 0.35)" }} className="login-card-animated">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "12px" }}>
-                      <div>
-                        <h3 style={{ ...styles.cardTitle, margin: 0 }}>Filter Periode Laporan & Cetak PDF</h3>
-                        <span style={{ fontSize: "11px", color: "#a1a1aa" }}>Pilih rentang tanggal mulai (A) hingga tanggal akhir (B) untuk menyaring laporan dan cetak PDF.</span>
+            {/* ADMIN MASTER CONTROL HUB */}
+            {isAdmin && (
+              <div className="space-y-6">
+                {/* Filter HUD Controller Bar */}
+                <div className="cyber-card p-6 border-blue-500/30">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <SlidersHorizontal className="w-4 h-4 text-blue-400" />
+                        <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">
+                          Filter Periode & Kontrol Laporan
+                        </h3>
                       </div>
-                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                        <button type="button" onClick={handleSetBulanIni} style={{ ...styles.btnEdit, background: "#0284c7" }} className="btn-action">
-                          📅 Bulan Ini
-                        </button>
-                        <button type="button" onClick={handleResetFilter} style={{ ...styles.btnEdit, background: "#27272a" }} className="btn-action">
-                          Reset Filter
-                        </button>
-                        <button type="button" onClick={handlePrintReport} style={{ ...styles.btnEdit, background: "#16a34a", fontWeight: "600", padding: "6px 12px" }} className="btn-action">
-                          🖨️ Cetak Laporan PDF
-                        </button>
-                      </div>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                        Saring data transaksi berdasarkan rentang tanggal, nama anggota, kata kunci, dan status pembayaran.
+                      </p>
                     </div>
 
-                    <div style={{ ...styles.subFormContainer, marginBottom: 0 }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
-                        <div>
-                          <label style={{ ...styles.label, marginBottom: "4px" }}>Dari Tanggal (A):</label>
-                          <input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} style={{ ...styles.inputSm, colorScheme: "dark" }} className="form-field" />
-                        </div>
-                        <div>
-                          <label style={{ ...styles.label, marginBottom: "4px" }}>Sampai Tanggal (B):</label>
-                          <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} style={{ ...styles.inputSm, colorScheme: "dark" }} className="form-field" />
-                        </div>
-                        <div>
-                          <label style={{ ...styles.label, marginBottom: "4px" }}>Cari Nama Anggota (Opsional):</label>
-                          <input type="text" placeholder="Ketik nama anggota..." value={filterMemberName} onChange={(e) => setFilterMemberName(e.target.value)} style={styles.inputSm} className="form-field" />
-                        </div>
-                      </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={handleExportCSV}
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold btn-shimmer transition shadow-md shadow-blue-950/40"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Export CSV</span>
+                      </button>
 
-                      {hasActiveFilter && (
-                        <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", flexWrap: "wrap", gap: "16px", fontSize: "11px", color: "#d4d4d8" }}>
-                          <span>Periode Aktif: <strong>{labelPeriodeCetak()}</strong></span>
-                          <span>Pemasukan Periode: <strong style={{ color: "#22c55e" }}>+Rp {filteredTotalIn.toLocaleString("id-ID")}</strong></span>
-                          <span>Pengeluaran Periode: <strong style={{ color: "#ef4444" }}>-Rp {filteredTotalOut.toLocaleString("id-ID")}</strong></span>
-                          <span>Selisih: <strong style={{ color: "#60a5fa" }}>Rp {filteredSaldoBersih.toLocaleString("id-ID")}</strong></span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                      <button
+                        type="button"
+                        onClick={handleSetBulanIni}
+                        className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold transition"
+                      >
+                        Bulan Ini
+                      </button>
 
-                  <div style={{ ...styles.card, marginTop: "16px" }} className="login-card-animated">
-                    <h3 style={styles.cardTitle}>Kelola Anggota</h3>
-                    <form onSubmit={handleTambahAnggota} style={styles.subFormContainer}>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "8px" }}>
-                        <input type="text" placeholder="Nama Lengkap" value={addName} onChange={(e) => setAddName(e.target.value)} required style={styles.inputSm} className="form-field" />
-                        <input type="email" placeholder="Email" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} required style={styles.inputSm} className="form-field" />
-                        <input type="password" placeholder="Kata Sandi" value={addPass} onChange={(e) => setAddPass(e.target.value)} required style={styles.inputSm} className="form-field" />
-                        <select value={addRole} onChange={(e) => setAddRole(e.target.value)} style={{ ...styles.inputSm, background: "#09090b" }}>
-                          <option value="anggota">Anggota</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                        <button type="submit" style={styles.btnSaveSm} className="btn-action">Tambah</button>
-                      </div>
-                    </form>
+                      <button
+                        type="button"
+                        onClick={handleResetFilter}
+                        className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold transition"
+                      >
+                        Reset Filter
+                      </button>
 
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={styles.table}>
-                        <thead>
-                          <tr>
-                            <th style={styles.th}>ID</th>
-                            <th style={styles.th}>NAMA</th>
-                            <th style={styles.th}>EMAIL</th>
-                            <th style={styles.th}>ROLE</th>
-                            <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {anggotaList.map((m) => (
-                            <tr key={m.id} style={styles.tr}>
-                              <td style={styles.tdMuted}>#{m.id}</td>
-                              <td style={styles.tdWhite}>
-                                {editingUserId === m.id ? (
-                                  <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} style={styles.inputSm} className="form-field" />
-                                ) : (
-                                  m.name
-                                )}
-                              </td>
-                              <td style={styles.tdMuted}>
-                                {editingUserId === m.id ? (
-                                  <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} style={styles.inputSm} className="form-field" />
-                                ) : (
-                                  m.email
-                                )}
-                              </td>
-                              <td style={styles.td}>
-                                {editingUserId === m.id ? (
-                                  <select value={editRole} onChange={(e) => setEditRole(e.target.value)} style={styles.inputSm}>
-                                    <option value="anggota">Anggota</option>
-                                    <option value="admin">Admin</option>
-                                  </select>
-                                ) : (
-                                  <span style={m.role === "admin" ? styles.badgeAdmin : styles.badgeMember}>
-                                    {m.role ? m.role.toUpperCase() : "ANGGOTA"}
-                                  </span>
-                                )}
-                              </td>
-                              <td style={{ ...styles.td, textAlign: "right" }}>
-                                {editingUserId === m.id ? (
-                                  <button onClick={() => handleSaveEditAnggota(m.id)} style={styles.btnSaveSm} className="btn-action">Simpan</button>
-                                ) : (
-                                  <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
-                                    <button onClick={() => { setEditingUserId(m.id); setEditName(m.name); setEditEmail(m.email); setEditPass(m.password); setEditRole(m.role || "anggota"); }} style={styles.btnEdit} className="btn-action">Ubah</button>
-                                    <button onClick={() => handleHapusAnggota(m.id, m.name)} style={styles.btnReject} className="btn-action">Hapus</button>
-                                  </div>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div style={{ ...styles.card, marginTop: "16px" }} className="login-card-animated">
-                    <h3 style={styles.cardTitle}>Rincian Pengeluaran Kas {hasActiveFilter ? `(${labelPeriodeCetak()})` : ""}</h3>
-                    <form onSubmit={handleTambahKasKeluar} style={styles.subFormContainer}>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "8px" }}>
-                        <input type="text" placeholder="Keterangan Pengeluaran" value={outKeterangan} onChange={(e) => setOutKeterangan(e.target.value)} required style={styles.inputSm} className="form-field" />
-                        <input type="number" placeholder="Jumlah (Rp)" value={outAmount} onChange={(e) => setOutAmount(e.target.value)} required style={styles.inputSm} className="form-field" />
-                        <input type="date" value={outDate} onChange={(e) => setOutDate(e.target.value)} style={{ ...styles.inputSm, colorScheme: "dark" }} className="form-field" />
-                        <button type="submit" style={styles.btnReject} className="btn-action">Catat Pengeluaran</button>
-                      </div>
-                    </form>
-
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={styles.table}>
-                        <thead>
-                          <tr>
-                            <th style={styles.th}>TANGGAL</th>
-                            <th style={styles.th}>KETERANGAN</th>
-                            <th style={{ ...styles.th, textAlign: "right" }}>NOMINAL</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredKasKeluarAdmin.length === 0 ? (
-                            <tr><td colSpan="3" style={styles.tdEmpty}>Belum ada data pengeluaran pada periode ini.</td></tr>
-                          ) : (
-                            filteredKasKeluarAdmin.map((item) => (
-                              <tr key={item.id} style={styles.tr}>
-                                <td style={styles.tdMuted}>{item.expense_date || "-"}</td>
-                                <td style={styles.tdWhite}>{item.title}</td>
-                                <td style={{ ...styles.td, textAlign: "right", color: "#ef4444", fontWeight: "600" }}>
-                                  -Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div style={{ ...styles.card, marginTop: "16px" }} className="login-card-animated">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
-                      <h3 style={{ ...styles.cardTitle, margin: 0 }}>Rincian Pembayaran Masuk {hasActiveFilter ? `(${labelPeriodeCetak()})` : ""}</h3>
-                      <button type="button" onClick={handlePrintReport} style={{ ...styles.btnEdit, background: "#16a34a" }} className="btn-action">
-                        🖨️ Cetak Laporan PDF
+                      <button
+                        type="button"
+                        onClick={handlePrintReport}
+                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold btn-shimmer transition shadow-lg shadow-emerald-950/50"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Cetak Laporan PDF</span>
                       </button>
                     </div>
+                  </div>
 
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={styles.table}>
-                        <thead>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-mono text-zinc-400 mb-1">DARI TANGGAL (A):</label>
+                      <input
+                        type="date"
+                        value={filterStartDate}
+                        onChange={(e) => setFilterStartDate(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-800 text-xs text-white outline-none focus:border-blue-500 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-mono text-zinc-400 mb-1">SAMPAI TANGGAL (B):</label>
+                      <input
+                        type="date"
+                        value={filterEndDate}
+                        onChange={(e) => setFilterEndDate(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-800 text-xs text-white outline-none focus:border-blue-500 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-mono text-zinc-400 mb-1">CARI ANGGOTA:</label>
+                      <input
+                        type="text"
+                        placeholder="Nama anggota..."
+                        value={filterMemberName}
+                        onChange={(e) => setFilterMemberName(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-800 text-xs text-white placeholder-zinc-600 outline-none focus:border-blue-500 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-mono text-zinc-400 mb-1">CARI KATA KUNCI / NOMINAL:</label>
+                      <input
+                        type="text"
+                        placeholder="Ketik keterangan / angka..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-800 text-xs text-white placeholder-zinc-600 outline-none focus:border-blue-500 transition"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Status Pills */}
+                  <div className="mt-3 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-mono text-zinc-500 mr-1">STATUS:</span>
+                    {[
+                      { id: "all", label: "Semua" },
+                      { id: "settlement", label: "Disetujui" },
+                      { id: "pending", label: "Menunggu" },
+                      { id: "ditolak", label: "Ditolak" },
+                    ].map((st) => (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => setStatusFilter(st.id)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition ${
+                          statusFilter === st.id
+                            ? "bg-blue-600 text-white shadow-md shadow-blue-950/40"
+                            : "bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800"
+                        }`}
+                      >
+                        {st.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {hasActiveFilter && (
+                    <div className="mt-4 pt-3 border-t border-zinc-800/80 flex flex-wrap items-center gap-4 text-xs font-mono">
+                      <span className="text-zinc-400">Periode: <strong className="text-white">{labelPeriodeCetak()}</strong></span>
+                      <span className="text-zinc-400">Masuk: <strong className="text-emerald-400">+Rp {filteredTotalIn.toLocaleString("id-ID")}</strong></span>
+                      <span className="text-zinc-400">Keluar: <strong className="text-red-400">-Rp {filteredTotalOut.toLocaleString("id-ID")}</strong></span>
+                      <span className="text-zinc-400">Selisih: <strong className="text-cyan-400">Rp {filteredSaldoBersih.toLocaleString("id-ID")}</strong></span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 1: Inflow Transactions (Pemasukan Kas) */}
+                <div className="cyber-card p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-zinc-800">
+                    <div className="flex items-center gap-2">
+                      <ArrowUpRight className="w-4 h-4 text-emerald-400" />
+                      <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">
+                        Rincian Pembayaran Kas Masuk {hasActiveFilter ? `(${labelPeriodeCetak()})` : ""}
+                      </h3>
+                    </div>
+                    <span className="text-xs font-mono text-zinc-400">
+                      Total: <strong className="text-emerald-400">+Rp {filteredTotalIn.toLocaleString("id-ID")}</strong>
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="cyber-table">
+                      <thead>
+                        <tr>
+                          <th>TANGGAL</th>
+                          <th>PEMBAYAR / ANGGOTA</th>
+                          <th>NOMINAL</th>
+                          <th>STATUS</th>
+                          <th className="text-right">AKSI VERIFIKASI</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredTransaksiAdmin.length === 0 ? (
                           <tr>
-                            <th style={styles.th}>TANGGAL</th>
-                            <th style={styles.th}>PEMBAYAR</th>
-                            <th style={styles.th}>NOMINAL</th>
-                            <th style={styles.th}>STATUS</th>
-                            <th style={{ ...styles.th, textAlign: "right" }}>AKSI</th>
+                            <td colSpan="5" className="text-center py-8 text-zinc-500 text-xs">
+                              Tidak ada data pembayaran kas pada periode ini.
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {filteredTransaksiAdmin.length === 0 ? (
-                            <tr><td colSpan="5" style={styles.tdEmpty}>Tidak ada data pembayaran pada periode ini.</td></tr>
-                          ) : (
-                            filteredTransaksiAdmin.map((item) => (
-                              <tr key={item.id} style={styles.tr}>
-                                <td style={styles.tdMuted}>{item.transaction_date || "-"}</td>
-                                <td style={styles.tdWhite}>{item.payer_name || item.keterangan || "-"}</td>
-                                <td style={styles.tdGreen}>+Rp {parseInt(item.amount || item.jumlah || 0).toLocaleString("id-ID")}</td>
-                                <td style={styles.td}>
-                                  <span style={((item.status || "").toLowerCase() === "settlement" || (item.status || "").toLowerCase() === "lunas") ? styles.badgeSuccess : (item.status || "").toLowerCase() === "ditolak" ? styles.badgeDanger : styles.badgePending}>
+                        ) : (
+                          filteredTransaksiAdmin.map((item) => {
+                            const isApproved =
+                              (item.status || "").toLowerCase() === "settlement" ||
+                              (item.status || "").toLowerCase() === "lunas";
+                            const isRejected = (item.status || "").toLowerCase() === "ditolak";
+                            const isPending = !isApproved && !isRejected;
+
+                            return (
+                              <tr key={item.id}>
+                                <td className="text-zinc-400 font-mono text-xs">
+                                  {item.transaction_date || "-"}
+                                </td>
+                                <td className="font-semibold text-white">
+                                  {item.payer_name || item.keterangan || "-"}
+                                </td>
+                                <td className="font-bold text-emerald-400 font-mono">
+                                  +Rp {parseInt(item.amount || item.jumlah || 0).toLocaleString("id-ID")}
+                                </td>
+                                <td>
+                                  <span
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                      isApproved
+                                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                        : isRejected
+                                        ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                        : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                    }`}
+                                  >
+                                    <span
+                                      className={`w-1.5 h-1.5 rounded-full ${
+                                        isApproved ? "bg-emerald-400" : isRejected ? "bg-red-400" : "bg-amber-400"
+                                      }`}
+                                    />
                                     {formatStatusLabel(item.status)}
                                   </span>
                                 </td>
-                                <td style={{ ...styles.td, textAlign: "right" }}>
-                                  <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                                <td className="text-right">
+                                  <div className="flex items-center justify-end gap-1.5">
                                     {item.description && item.description.startsWith("data:image") && (
-                                      <button onClick={() => setSelectedProof(item.description)} style={styles.btnProof} className="btn-action">Bukti</button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedProof(item.description)}
+                                        className="px-2.5 py-1 rounded-lg bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30 text-[11px] font-semibold transition"
+                                      >
+                                        Bukti
+                                      </button>
                                     )}
-                                    {((item.status || "").toLowerCase() === "pending" || !item.status) && (
+                                    {isPending && (
                                       <>
-                                        <button onClick={() => handleVerifikasi(item.id)} style={styles.btnApprove} className="btn-action">Setujui</button>
-                                        <button onClick={() => handleTolak(item.id)} style={styles.btnReject} className="btn-action">Tolak</button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleVerifikasi(item.id)}
+                                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition shadow-md shadow-emerald-950/40"
+                                        >
+                                          Setujui
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleTolak(item.id)}
+                                          className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[11px] font-bold transition shadow-md shadow-red-950/40"
+                                        >
+                                          Tolak
+                                        </button>
                                       </>
                                     )}
                                   </div>
                                 </td>
                               </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
                   </div>
-                </>
-              )}
-            </main>
-          </div>
-        )}
-      </div>
+                </div>
+
+                {/* Section 2: Outflow Expenses (Pengeluaran Kas) */}
+                <div className="cyber-card p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-zinc-800">
+                    <div className="flex items-center gap-2">
+                      <ArrowDownRight className="w-4 h-4 text-red-400" />
+                      <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">
+                        Rincian Pengeluaran Kas {hasActiveFilter ? `(${labelPeriodeCetak()})` : ""}
+                      </h3>
+                    </div>
+                    <span className="text-xs font-mono text-zinc-400">
+                      Total: <strong className="text-red-400">-Rp {filteredTotalOut.toLocaleString("id-ID")}</strong>
+                    </span>
+                  </div>
+
+                  {/* Add Expense Form */}
+                  <form onSubmit={handleTambahKasKeluar} className="mb-4 p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                      <input
+                        type="text"
+                        placeholder="Keterangan Pengeluaran"
+                        value={outKeterangan}
+                        onChange={(e) => setOutKeterangan(e.target.value)}
+                        required
+                        className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 outline-none focus:border-red-500 transition"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Nominal (Rp)"
+                        value={outAmount}
+                        onChange={(e) => setOutAmount(e.target.value)}
+                        required
+                        className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 outline-none focus:border-red-500 transition"
+                      />
+                      <input
+                        type="date"
+                        value={outDate}
+                        onChange={(e) => setOutDate(e.target.value)}
+                        className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white outline-none focus:border-red-500 transition"
+                      />
+                      <button
+                        type="submit"
+                        className="py-2 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs btn-shimmer transition shadow-md shadow-red-950/40"
+                      >
+                        + Catat Pengeluaran
+                      </button>
+                    </div>
+                  </form>
+
+                  <div className="overflow-x-auto">
+                    <table className="cyber-table">
+                      <thead>
+                        <tr>
+                          <th>TANGGAL</th>
+                          <th>KETERANGAN PENGELUARAN</th>
+                          <th className="text-right">NOMINAL KELUAR</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredKasKeluarAdmin.length === 0 ? (
+                          <tr>
+                            <td colSpan="3" className="text-center py-8 text-zinc-500 text-xs">
+                              Tidak ada data pengeluaran kas pada periode ini.
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredKasKeluarAdmin.map((item) => (
+                            <tr key={item.id}>
+                              <td className="text-zinc-400 font-mono text-xs">
+                                {item.expense_date || "-"}
+                              </td>
+                              <td className="text-white font-medium">{item.title}</td>
+                              <td className="text-right font-bold text-red-400 font-mono">
+                                -Rp {parseInt(item.amount || 0).toLocaleString("id-ID")}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Section 3: Member Management */}
+                <div className="cyber-card p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-zinc-800">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-cyan-400" />
+                      <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">
+                        Kelola Daftar Anggota Organisasi
+                      </h3>
+                    </div>
+                    <span className="text-xs font-mono text-zinc-400">
+                      Total Anggota: <strong className="text-white">{anggotaList.length}</strong>
+                    </span>
+                  </div>
+
+                  {/* Add Member Form */}
+                  <form onSubmit={handleTambahAnggota} className="mb-4 p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800">
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5">
+                      <input
+                        type="text"
+                        placeholder="Nama Lengkap"
+                        value={addName}
+                        onChange={(e) => setAddName(e.target.value)}
+                        required
+                        className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 outline-none focus:border-cyan-500 transition"
+                      />
+                      <input
+                        type="email"
+                        placeholder="Email Anggota"
+                        value={addEmail}
+                        onChange={(e) => setAddEmail(e.target.value)}
+                        required
+                        className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 outline-none focus:border-cyan-500 transition"
+                      />
+                      <input
+                        type="password"
+                        placeholder="Kata Sandi"
+                        value={addPass}
+                        onChange={(e) => setAddPass(e.target.value)}
+                        required
+                        className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 outline-none focus:border-cyan-500 transition"
+                      />
+                      <select
+                        value={addRole}
+                        onChange={(e) => setAddRole(e.target.value)}
+                        className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white outline-none focus:border-cyan-500 transition"
+                      >
+                        <option value="anggota">Anggota</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                      <button
+                        type="submit"
+                        className="py-2 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs btn-shimmer transition shadow-md shadow-cyan-950/40"
+                      >
+                        + Tambah Anggota
+                      </button>
+                    </div>
+                  </form>
+
+                  <div className="overflow-x-auto">
+                    <table className="cyber-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>NAMA LENGKAP</th>
+                          <th>EMAIL</th>
+                          <th>ROLE</th>
+                          <th className="text-right">AKSI</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {anggotaList.map((m) => (
+                          <tr key={m.id}>
+                            <td className="font-mono text-zinc-500 text-xs">#{m.id}</td>
+                            <td className="text-white font-medium">
+                              {editingUserId === m.id ? (
+                                <input
+                                  type="text"
+                                  value={editName}
+                                  onChange={(e) => setEditName(e.target.value)}
+                                  className="px-2 py-1 rounded bg-zinc-900 border border-zinc-700 text-xs text-white"
+                                />
+                              ) : (
+                                m.name
+                              )}
+                            </td>
+                            <td className="text-zinc-400 text-xs font-mono">
+                              {editingUserId === m.id ? (
+                                <input
+                                  type="email"
+                                  value={editEmail}
+                                  onChange={(e) => setEditEmail(e.target.value)}
+                                  className="px-2 py-1 rounded bg-zinc-900 border border-zinc-700 text-xs text-white"
+                                />
+                              ) : (
+                                m.email
+                              )}
+                            </td>
+                            <td>
+                              {editingUserId === m.id ? (
+                                <select
+                                  value={editRole}
+                                  onChange={(e) => setEditRole(e.target.value)}
+                                  className="px-2 py-1 rounded bg-zinc-900 border border-zinc-700 text-xs text-white"
+                                >
+                                  <option value="anggota">Anggota</option>
+                                  <option value="admin">Admin</option>
+                                </select>
+                              ) : (
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider ${
+                                    m.role === "admin"
+                                      ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                                      : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                  }`}
+                                >
+                                  {m.role || "ANGGOTA"}
+                                </span>
+                              )}
+                            </td>
+                            <td className="text-right">
+                              {editingUserId === m.id ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveEditAnggota(m.id)}
+                                  className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition"
+                                >
+                                  Simpan
+                                </button>
+                              ) : (
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingUserId(m.id);
+                                      setEditName(m.name);
+                                      setEditEmail(m.email);
+                                      setEditPass(m.password);
+                                      setEditRole(m.role || "anggota");
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 text-xs font-semibold transition"
+                                  >
+                                    Ubah
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleHapusAnggota(m.id, m.name)}
+                                    className="px-2.5 py-1 rounded-lg bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 text-xs font-semibold transition"
+                                  >
+                                    Hapus
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
+      )}
     </div>
   );
 }
-
-const styles = {
-  appWrapper: { minHeight: "100vh", position: "relative", color: "#f4f4f5", background: "transparent", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" },
-  toastContainer: { position: "fixed", bottom: "20px", right: "20px", background: "rgba(24, 24, 27, 0.9)", backdropFilter: "blur(12px)", color: "#f4f4f5", border: "1px solid rgba(255, 255, 255, 0.15)", padding: "10px 16px", borderRadius: "8px", fontSize: "12px", zIndex: 10000 },
-  loginContainer: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" },
-  loginCard: { background: "rgba(15, 15, 20, 0.65)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: "1px solid rgba(255, 255, 255, 0.12)", borderRadius: "16px", padding: "24px", width: "100%", maxWidth: "350px", boxShadow: "0 20px 50px rgba(0, 0, 0, 0.75)" },
-  loginTitle: { fontSize: "16px", fontWeight: "600", color: "#f4f4f5", margin: "10px 0 2px 0" },
-  loginSub: { fontSize: "12px", color: "#a1a1aa", margin: 0 },
-  label: { display: "block", fontSize: "11px", color: "#a1a1aa", marginBottom: "6px", fontWeight: "500" },
-  input: { width: "100%", padding: "9px 12px", background: "rgba(9, 9, 11, 0.75)", border: "1px solid rgba(255, 255, 255, 0.1)", color: "#f4f4f5", borderRadius: "6px", boxSizing: "border-box", fontSize: "13px" },
-  inputSm: { padding: "6px 10px", background: "rgba(9, 9, 11, 0.75)", border: "1px solid rgba(255, 255, 255, 0.1)", color: "#f4f4f5", borderRadius: "6px", fontSize: "12px", width: "100%", boxSizing: "border-box" },
-  btnEye: { position: "absolute", right: "8px", background: "none", border: "none", color: "#a1a1aa", cursor: "pointer" },
-  btnLogin: { width: "100%", padding: "9px", background: "#2563eb", color: "#ffffff", border: "none", borderRadius: "6px", fontWeight: "600", cursor: "pointer", fontSize: "13px" },
-  errorBox: { background: "rgba(127, 29, 29, 0.35)", border: "1px solid #7f1d1d", color: "#fca5a5", padding: "8px 12px", borderRadius: "6px", fontSize: "12px", marginBottom: "12px" },
-  navbarSticky: { position: "sticky", top: 0, zIndex: 999, padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(15, 15, 20, 0.75)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255, 255, 255, 0.08)", boxShadow: "0 4px 20px rgba(0, 0, 0, 0.5)" },
-  navTitle: { fontWeight: "600", fontSize: "13px", color: "#f4f4f5" },
-  userBadge: { display: "flex", alignItems: "center", gap: "8px", background: "rgba(9, 9, 11, 0.7)", padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(255, 255, 255, 0.1)" },
-  badgeAdmin: { background: "#2563eb", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: "700" },
-  badgeMember: { background: "#16a34a", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: "700" },
-  btnLogout: { background: "#dc2626", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "600", cursor: "pointer" },
-  heroGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" },
-  card: { background: "rgba(18, 18, 23, 0.75)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "12px", padding: "16px", boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)" },
-  cardHeaderLabel: { fontSize: "11px", fontWeight: "600", color: "#a1a1aa" },
-  statNumber: { fontSize: "26px", color: "#22c55e", margin: "4px 0", fontWeight: "700" },
-  cardTitle: { fontSize: "13px", fontWeight: "600", marginTop: 0, marginBottom: "12px", color: "#f4f4f5" },
-  subFormContainer: { marginBottom: "14px", background: "rgba(9, 9, 11, 0.65)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255, 255, 255, 0.08)" },
-  btnSaveSm: { background: "#16a34a", color: "#fff", border: "none", padding: "6px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "600", cursor: "pointer", width: "100%" },
-  btnEdit: { background: "#2563eb", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "500", cursor: "pointer" },
-  table: { width: "100%", borderCollapse: "collapse", fontSize: "12px" },
-  th: { textAlign: "left", padding: "8px 6px", color: "#a1a1aa", fontSize: "11px", borderBottom: "1px solid rgba(255, 255, 255, 0.1)", fontWeight: "600" },
-  tr: { borderBottom: "1px solid rgba(255, 255, 255, 0.06)" },
-  td: { padding: "8px 6px" },
-  tdMuted: { padding: "8px 6px", color: "#a1a1aa" },
-  tdWhite: { padding: "8px 6px", color: "#f4f4f5" },
-  tdGreen: { padding: "8px 6px", color: "#22c55e", fontWeight: "600" },
-  tdEmpty: { padding: "16px", textAlign: "center", color: "#a1a1aa" },
-  badgeSuccess: { background: "rgba(34, 197, 94, 0.15)", color: "#22c55e", padding: "2px 6px", borderRadius: "4px", fontSize: "10px" },
-  badgeDanger: { background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", padding: "2px 6px", borderRadius: "4px", fontSize: "10px" },
-  badgePending: { background: "rgba(234, 179, 8, 0.15)", color: "#eab308", padding: "2px 6px", borderRadius: "4px", fontSize: "10px" },
-  btnProof: { background: "#6d28d9", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", fontSize: "10px", cursor: "pointer" },
-  btnApprove: { background: "#16a34a", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", fontSize: "10px", cursor: "pointer" },
-  btnReject: { background: "#dc2626", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", fontSize: "10px", cursor: "pointer" },
-  modalOverlay: { position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.8)", backdropFilter: "blur(6px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" },
-  modalContent: { background: "rgba(24, 24, 27, 0.92)", border: "1px solid rgba(255, 255, 255, 0.12)", borderRadius: "10px", padding: "16px", maxWidth: "400px", width: "100%", textAlign: "center" },
-  modalHeader: { margin: "0 0 10px 0", fontSize: "13px", color: "#f4f4f5" },
-  proofImg: { width: "100%", maxHeight: "55vh", objectFit: "contain", borderRadius: "6px", border: "1px solid #27272a" },
-  btnCloseModal: { marginTop: "10px", background: "#dc2626", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", cursor: "pointer" },
-};
 
 export default App;
